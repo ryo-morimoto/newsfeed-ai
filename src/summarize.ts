@@ -16,13 +16,13 @@ export async function summarizeArticles(
     return articles.map((a) => ({ ...a, summary: "" }));
   }
 
-  const prompt = `Summarize each article in 1 short sentence (max 80 chars). Focus on what's new/important.
+  const prompt = `各記事を日本語で1文（最大80文字）で要約してください。何が新しいか・重要かに焦点を当ててください。
 
 Articles:
 ${articles.map((a, i) => `[${i}] ${a.title}\n${a.content?.slice(0, 300) || ""}`).join("\n\n")}
 
-Respond with JSON array only:
-[{"index": 0, "summary": "brief summary"}, ...]`;
+JSON配列のみで回答:
+[{"index": 0, "summary": "日本語の要約"}, ...]`;
 
   try {
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
