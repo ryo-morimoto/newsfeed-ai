@@ -1,5 +1,5 @@
 {
-  "name": "news-bot",
+  "name": "newsfeed-ai",
   "module": "src/main.ts",
   "type": "module",
   "private": true,

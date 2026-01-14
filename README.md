@@ -1,6 +1,6 @@
-# 📰 Personal News Bot
+# 📰 Newsfeed AI
 
-AI-powered personalized tech news aggregator. Collects articles from various sources, filters them based on your interests using Claude API, and sends daily digests to Discord.
+AI-powered personalized tech news aggregator with adaptive learning. Collects articles from various sources, filters them based on your interests using AI, learns from your feedback, and automatically improves recommendations over time.
 
 ## Features
 
