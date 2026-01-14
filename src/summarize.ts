@@ -25,16 +25,16 @@ Respond with JSON array only:
 [{"index": 0, "summary": "brief summary"}, ...]`;
 
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "llama-3.3-70b-versatile",
         max_tokens: 1024,
+        temperature: 0.1,
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -45,7 +45,7 @@ Respond with JSON array only:
     }
 
     const data = await res.json();
-    const content = data.content[0]?.text || "[]";
+    const content = data.choices?.[0]?.message?.content || "[]";
     const jsonMatch = content.match(/\[.*\]/s);
 
     if (jsonMatch) {

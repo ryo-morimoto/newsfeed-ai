@@ -5,7 +5,7 @@ AI-powered personalized tech news aggregator. Collects articles from various sou
 ## Features
 
 - 📡 **Multiple Sources**: Hacker News, Lobsters, arXiv, GitHub Trending, RSS feeds
-- 🧠 **AI Filtering**: Claude API scores articles based on your interests
+- 🧠 **AI Filtering**: Groq API (Llama 3.3 70B) scores articles based on your interests
 - 📝 **Auto-Summarization**: Each article gets a brief summary
 - 💬 **Discord Notifications**: Daily digest sent to your channel
 - 🗄️ **Deduplication**: SQLite tracks seen articles
@@ -31,7 +31,7 @@ bun run start
 
 | Variable | Description |
 |----------|-------------|
-| `ANTHROPIC_API_KEY` | Claude API key for filtering/summarization |
+| `GROQ_API_KEY` | Groq API key (free at https://console.groq.com) |
 | `DISCORD_WEBHOOK` | Discord webhook URL |
 | `MAX_ARTICLES` | Max articles per digest (default: 20) |
 | `DRY_RUN` | Skip Discord notification if true |

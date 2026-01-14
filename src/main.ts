@@ -13,14 +13,14 @@ import {
 
 // Environment variables
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
-const CLAUDE_API_KEY = process.env.ANTHROPIC_API_KEY || "";
+const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const DRY_RUN = process.env.DRY_RUN === "true";
 const MAX_ARTICLES = parseInt(process.env.MAX_ARTICLES || "20");
 
 async function main() {
   console.log("\n🚀 Starting news bot...");
   console.log(`DRY_RUN: ${DRY_RUN}`);
-  console.log(`CLAUDE_API_KEY: ${CLAUDE_API_KEY ? "set" : "not set"}`);
+  console.log(`GROQ_API_KEY: ${GROQ_API_KEY ? "set" : "not set"}`);
   console.log(`DISCORD_WEBHOOK: ${DISCORD_WEBHOOK ? "set" : "not set"}`);
 
   // Initialize database
@@ -97,7 +97,7 @@ async function main() {
 
   // Filter with Claude
   console.log("\n🧠 Filtering with Claude...");
-  const filtered = await filterArticles(allArticles, CLAUDE_API_KEY);
+  const filtered = await filterArticles(allArticles, GROQ_API_KEY);
   console.log(`  Passed filter: ${filtered.length}`);
 
   // Take top N
@@ -106,7 +106,7 @@ async function main() {
 
   // Summarize
   console.log("\n✍️ Summarizing...");
-  const summarized = await summarizeArticles(topArticles, CLAUDE_API_KEY);
+  const summarized = await summarizeArticles(topArticles, GROQ_API_KEY);
 
   // Prepare for notification
   const toNotify: NotifyArticle[] = summarized.map((a) => ({

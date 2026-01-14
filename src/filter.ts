@@ -22,7 +22,7 @@ export async function filterArticles(
   apiKey: string
 ): Promise<FilteredArticle[]> {
   if (!apiKey) {
-    console.log("No Claude API key, returning all articles unfiltered");
+    console.log("No Groq API key, returning all articles unfiltered");
     return articles.map((a) => ({ ...a, score: 0.5, reason: "unfiltered" }));
   }
 
@@ -47,16 +47,16 @@ Respond with JSON array only, no explanation:
 Only include articles with score >= 0.5`;
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
+          "Authorization": `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "llama-3.3-70b-versatile",
           max_tokens: 1024,
+          temperature: 0.1,
           messages: [
             {
               role: "user",
@@ -68,8 +68,7 @@ Only include articles with score >= 0.5`;
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error(`Claude API error: ${res.status}`, errorText);
-        // Fall back to including all
+        console.error(`Groq API error: ${res.status}`, errorText);
         results.push(
           ...batch.map((a) => ({ ...a, score: 0.5, reason: "api error" }))
         );
@@ -77,7 +76,7 @@ Only include articles with score >= 0.5`;
       }
 
       const data = await res.json();
-      const content = data.content[0]?.text || "[]";
+      const content = data.choices?.[0]?.message?.content || "[]";
 
       // Parse JSON from response
       const jsonMatch = content.match(/\[.*\]/s);
@@ -100,6 +99,11 @@ Only include articles with score >= 0.5`;
       results.push(
         ...batch.map((a) => ({ ...a, score: 0.5, reason: "error" }))
       );
+    }
+
+    // Rate limit: small delay between batches
+    if (i + batchSize < articles.length) {
+      await new Promise((r) => setTimeout(r, 200));
     }
   }
 
