@@ -69,34 +69,6 @@ crontab -e
 7. Save      → Store in SQLite for dedup
 ```
 
-## Roadmap
-
-### Phase 1: Feedback Collection
-- [ ] Discord reaction tracking (👍👎 on articles)
-- [ ] Web dashboard for article rating
-- [ ] Store feedback in SQLite
-
-### Phase 2: Personalization
-- [ ] User interest profile (dynamic, not static config)
-- [ ] Learn from click/read behavior
-- [ ] Per-source quality scoring
-
-### Phase 3: Adaptive Learning
-- [ ] Feedback → scoring model adjustment
-- [ ] Auto-tune relevance thresholds
-- [ ] A/B test different prompts
-
-### Phase 4: Autonomous Exploration
-- [ ] Auto-discover new sources based on interests
-- [ ] Source quality evaluation & pruning
-- [ ] Cross-user pattern learning (if multi-user)
-
-### Phase 5: Multi-Interface
-- [ ] REST API for external integrations
-- [ ] Slack/Telegram support
-- [ ] Email digest option
-- [ ] Browser extension for inline feedback
-
 ## License
 
 MIT
