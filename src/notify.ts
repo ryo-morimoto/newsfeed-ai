@@ -45,8 +45,11 @@ export async function sendToDiscord(
 
     for (const item of items.slice(0, 5)) {
       // Max 5 per category
-      const summary = item.summary ? ` - ${item.summary}` : "";
-      content += `• [${item.title}](${item.url})${summary}\n`;
+      // Japanese articles: use title as-is, English: use summary
+      const isJapanese = category === "tech-jp";
+      const displayText = isJapanese ? item.title : (item.summary || item.title);
+      // Wrap URL in <> to disable link preview
+      content += `• ${displayText} [${item.source}]\n  <${item.url}>\n`;
     }
     content += "\n";
   }
