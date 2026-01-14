@@ -14,6 +14,7 @@ export interface Article {
   published_at?: string;
   created_at?: string;
   notified: number;
+  message_id?: string; // Discord message ID for feedback tracking
 }
 
 let db: Database;
@@ -21,6 +22,13 @@ let db: Database;
 export function initDb() {
   db = new Database(DB_PATH);
   
+  // Migration: add message_id column if not exists (run before CREATE INDEX)
+  try {
+    db.exec(`ALTER TABLE articles ADD COLUMN message_id TEXT`);
+  } catch (e) {
+    // Column already exists or table doesn't exist yet
+  }
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS articles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,12 +40,14 @@ export function initDb() {
       score REAL,
       published_at TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      notified INTEGER DEFAULT 0
+      notified INTEGER DEFAULT 0,
+      message_id TEXT
     );
     
     CREATE INDEX IF NOT EXISTS idx_url ON articles(url);
     CREATE INDEX IF NOT EXISTS idx_created ON articles(created_at);
     CREATE INDEX IF NOT EXISTS idx_notified ON articles(notified);
+    CREATE INDEX IF NOT EXISTS idx_message_id ON articles(message_id);
   `);
   
   return db;
@@ -84,4 +94,12 @@ export function getRecentArticles(hours: number = 24): Article[] {
     WHERE created_at > datetime('now', '-' || ? || ' hours')
     ORDER BY created_at DESC
   `).all(hours) as Article[];
+}
+
+export function saveMessageId(url: string, messageId: string) {
+  getDb().query("UPDATE articles SET message_id = ? WHERE url = ?").run(messageId, url);
+}
+
+export function getArticleByMessageId(messageId: string): Article | null {
+  return getDb().query("SELECT * FROM articles WHERE message_id = ?").get(messageId) as Article | null;
 }
