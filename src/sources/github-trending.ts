@@ -36,7 +36,7 @@ export async function fetchGitHubTrending(
         // Top 5 per language
         // Extract repo URL
         const urlMatch = article.match(/href="(\/[^\/]+\/[^\/"]+)"/);
-        if (!urlMatch) continue;
+        if (!urlMatch?.[1]) continue;
 
         const repoPath = urlMatch[1];
         const repoUrl = `https://github.com${repoPath}`;
@@ -46,15 +46,13 @@ export async function fetchGitHubTrending(
         const descMatch = article.match(
           /<p class="col-9[^"]*">\s*([^<]+?)\s*<\/p>/
         );
-        const description = descMatch
-          ? descMatch[1].trim()
-          : "No description";
+        const description = descMatch?.[1]?.trim() ?? "No description";
 
         // Extract stars (today)
         const starsMatch = article.match(
           /(\d[\d,]*)\s*stars\s*today/i
         );
-        const stars = starsMatch
+        const stars = starsMatch?.[1]
           ? parseInt(starsMatch[1].replace(/,/g, ""))
           : 0;
 

@@ -1,8 +1,9 @@
 export interface ArticleToSummarize {
   title: string;
   url: string;
+  source: string;
+  category: string;
   content?: string;
-  category?: string;
 }
 
 export interface SummarizedArticle extends ArticleToSummarize {
@@ -52,7 +53,9 @@ JSON配列のみで回答:
       return articles.map((a) => ({ ...a, summary: "" }));
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
     const content = data.choices?.[0]?.message?.content || "[]";
     const jsonMatch = content.match(/\[.*\]/s);
 

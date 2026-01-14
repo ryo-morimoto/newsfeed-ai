@@ -126,8 +126,8 @@ async function main() {
     title: a.title,
     url: a.url,
     summary: a.summary,
-    category: (a as ArticleToFilter).category,
-    source: (a as ArticleToFilter).source,
+    category: a.category,
+    source: a.source,
   }));
 
   // Save all fetched articles to DB (for dedup next time)

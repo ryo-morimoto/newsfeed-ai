@@ -75,7 +75,9 @@ Only include articles with score >= 0.5`;
         continue;
       }
 
-      const data = await res.json();
+      const data = (await res.json()) as {
+        choices?: { message?: { content?: string } }[];
+      };
       const content = data.choices?.[0]?.message?.content || "[]";
 
       // Parse JSON from response
@@ -85,9 +87,10 @@ Only include articles with score >= 0.5`;
           JSON.parse(jsonMatch[0]);
 
         for (const s of scored) {
-          if (s.index >= 0 && s.index < batch.length && s.score >= 0.5) {
+          const article = batch[s.index];
+          if (article && s.score >= 0.5) {
             results.push({
-              ...batch[s.index],
+              ...article,
               score: s.score,
               reason: s.reason,
             });
