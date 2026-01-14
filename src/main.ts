@@ -5,6 +5,7 @@ import { fetchGitHubTrending } from "./sources/github-trending";
 import { filterArticles, type ArticleToFilter } from "./filter";
 import { summarizeArticles } from "./summarize";
 import { sendToDiscord, type NotifyArticle } from "./notify";
+import { createDigestEmbed, createCategoryEmbeds, sendEmbedsToDiscord } from "./discord-embed";
 import {
   getRssSources,
   getHackerNewsSource,
@@ -17,6 +18,7 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const DRY_RUN = process.env.DRY_RUN === "true";
 const MAX_ARTICLES = parseInt(process.env.MAX_ARTICLES || "20");
 const MAX_PER_SOURCE = parseInt(process.env.MAX_PER_SOURCE || "10"); // Limit per source before filtering
+const EMBED_FORMAT = process.env.EMBED_FORMAT || "text"; // text, digest, category
 
 async function main() {
   console.log("\n🚀 Starting news bot...");
@@ -151,8 +153,20 @@ async function main() {
 
   // Send to Discord
   if (!DRY_RUN && DISCORD_WEBHOOK) {
-    console.log("\n📤 Sending to Discord...");
-    const success = await sendToDiscord(DISCORD_WEBHOOK, toNotify);
+    console.log(`\n📤 Sending to Discord (format: ${EMBED_FORMAT})...`);
+    let success = false;
+    
+    if (EMBED_FORMAT === "digest") {
+      const embeds = createDigestEmbed(toNotify);
+      success = await sendEmbedsToDiscord(DISCORD_WEBHOOK, embeds);
+    } else if (EMBED_FORMAT === "category") {
+      const embeds = createCategoryEmbeds(toNotify);
+      success = await sendEmbedsToDiscord(DISCORD_WEBHOOK, embeds);
+    } else {
+      // Default: text format (original)
+      success = await sendToDiscord(DISCORD_WEBHOOK, toNotify);
+    }
+    
     if (success) {
       markAsNotified(toNotify.map((a) => a.url));
       console.log("✅ Notifications sent!");
