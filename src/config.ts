@@ -1,6 +1,4 @@
-import { readFileSync } from "fs";
 import { join } from "path";
-import { parse } from "yaml";
 
 export interface RssSource {
   name: string;
@@ -35,12 +33,14 @@ export interface Config {
 
 let config: Config | null = null;
 
+import { readFileSync } from "fs";
+
 export function loadConfig(): Config {
   if (config) return config;
 
   const configPath = join(import.meta.dir, "..", "config", "sources.yaml");
   const content = readFileSync(configPath, "utf-8");
-  config = parse(content) as Config;
+  config = Bun.YAML.parse(content) as Config;
   return config;
 }
 
