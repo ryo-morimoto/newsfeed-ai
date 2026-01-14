@@ -49,6 +49,7 @@ async function main() {
           source: hnSource.name,
           category: hnSource.category,
           content: `Score: ${item.score}`,
+          published: item.published,
         });
         added++;
       }
@@ -72,6 +73,7 @@ async function main() {
           source: source.name,
           category: source.category,
           content: item.content,
+          published: item.published,
         });
         added++;
       }
@@ -130,6 +132,7 @@ async function main() {
     summary: a.summary,
     category: a.category,
     source: a.source,
+    published: (a as ArticleToFilter).published,
   }));
 
   // Save all fetched articles to DB (for dedup next time)

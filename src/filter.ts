@@ -6,6 +6,7 @@ export interface ArticleToFilter {
   source: string;
   category: string;
   content?: string;
+  published?: Date;
 }
 
 export interface FilteredArticle extends ArticleToFilter {

@@ -36,6 +36,24 @@ export interface DiscordWebhookPayload {
 }
 
 /**
+ * Format relative date (e.g., "今日", "1日前", "3日前")
+ */
+function formatRelativeDate(date?: Date): string {
+  if (!date) return "";
+  
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return "今日";
+  if (diffDays === 1) return "1日前";
+  if (diffDays <= 7) return `${diffDays}日前`;
+  
+  // More than a week: show date
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+/**
  * Create a single embed per category with multiple articles
  */
 export function createCategoryEmbeds(articles: NotifyArticle[]): DiscordEmbed[] {
@@ -51,6 +69,16 @@ export function createCategoryEmbeds(articles: NotifyArticle[]): DiscordEmbed[] 
   );
 
   const embeds: DiscordEmbed[] = [];
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`;
+  const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+
+  // Header embed
+  embeds.push({
+    title: `📰 Tech Digest`,
+    description: `**${dateStr} ${timeStr}** のまとめ（${articles.length}件）`,
+    color: 0x5865f2, // Discord blurple
+  });
 
   for (const [category, items] of Object.entries(grouped)) {
     const emoji = getCategoryEmoji(category);
@@ -61,8 +89,10 @@ export function createCategoryEmbeds(articles: NotifyArticle[]): DiscordEmbed[] 
     for (const item of items.slice(0, 5)) {
       const isJapanese = category === "tech-jp";
       const displayText = isJapanese ? item.title : (item.summary || item.title);
+      const dateLabel = formatRelativeDate(item.published);
+      const datePart = dateLabel ? ` • ${dateLabel}` : "";
       description += `**[${displayText}](${item.url})**\n`;
-      description += `└ \`${item.source}\`\n\n`;
+      description += `└ \`${item.source}\`${datePart}\n\n`;
     }
 
     embeds.push({

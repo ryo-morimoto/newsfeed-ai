@@ -6,6 +6,7 @@ export interface NotifyArticle {
   summary?: string;
   category: string;
   source: string;
+  published?: Date;
 }
 
 

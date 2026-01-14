@@ -3,6 +3,11 @@ import type { NotifyArticle } from "./notify";
 import { getCategoryEmoji } from "./config";
 
 // Sample data for preview
+const now = new Date();
+const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+
 const sampleArticles: NotifyArticle[] = [
   {
     title: "Claude 4 Released with Enhanced Coding Capabilities",
@@ -10,6 +15,7 @@ const sampleArticles: NotifyArticle[] = [
     summary: "Anthropic releases Claude 4 with significant improvements in code generation",
     category: "ai",
     source: "Hacker News",
+    published: now,
   },
   {
     title: "Next.js 15 Introduces Server Actions 2.0",
@@ -17,6 +23,7 @@ const sampleArticles: NotifyArticle[] = [
     summary: "Vercel announces Next.js 15 with enhanced server actions and improved DX",
     category: "frontend",
     source: "Vercel Blog",
+    published: yesterday,
   },
   {
     title: "Rust 2.0 RFC Published",
@@ -24,6 +31,7 @@ const sampleArticles: NotifyArticle[] = [
     summary: "The Rust team publishes RFC for Rust 2.0 with async improvements",
     category: "tech",
     source: "Lobsters",
+    published: twoDaysAgo,
   },
   {
     title: "Laravel 12 Released with AI Integration",
@@ -31,6 +39,7 @@ const sampleArticles: NotifyArticle[] = [
     summary: "Laravel 12 brings native AI/ML integration for PHP developers",
     category: "backend",
     source: "Laravel News",
+    published: threeDaysAgo,
   },
   {
     title: "bun - JavaScript runtime with bundler",
@@ -38,6 +47,7 @@ const sampleArticles: NotifyArticle[] = [
     summary: "All-in-one JS runtime with fast bundler (★2,500 today)",
     category: "repos",
     source: "GitHub (TypeScript)",
+    published: now,
   },
   {
     title: "Bitcoin ETFの承認がWeb3に与える影響",
@@ -45,6 +55,7 @@ const sampleArticles: NotifyArticle[] = [
     summary: "Bitcoin ETF approval impact on Web3",
     category: "crypto",
     source: "CoinDesk",
+    published: yesterday,
   },
   {
     title: "Bunで始めるモダンTypeScript開発",
@@ -52,6 +63,7 @@ const sampleArticles: NotifyArticle[] = [
     summary: "",
     category: "tech-jp",
     source: "Zenn",
+    published: now,
   },
 ];
 
