@@ -1,0 +1,92 @@
+# News Bot Sources Configuration
+
+sources:
+  # Tech News
+  - name: Hacker News
+    type: hackernews
+    category: tech
+    enabled: true
+
+  - name: Lobsters
+    type: rss
+    url: https://lobste.rs/rss
+    category: tech
+    enabled: true
+
+  # AI/LLM
+  - name: arXiv AI
+    type: rss
+    url: https://rss.arxiv.org/rss/cs.AI
+    category: ai
+    enabled: true
+
+  - name: arXiv CL
+    type: rss
+    url: https://rss.arxiv.org/rss/cs.CL
+    category: ai
+    enabled: true
+
+  - name: Hugging Face Blog
+    type: rss
+    url: https://huggingface.co/blog/feed.xml
+    category: ai
+    enabled: true
+
+  # Frontend
+  - name: Vercel Blog
+    type: rss
+    url: https://vercel.com/atom
+    category: frontend
+    enabled: true
+
+  # Laravel/PHP
+  - name: Laravel News
+    type: rss
+    url: https://laravel-news.com/feed
+    category: backend
+    enabled: true
+
+  # Japanese Tech
+  - name: Zenn Trending
+    type: rss
+    url: https://zenn.dev/feed
+    category: tech-jp
+    enabled: true
+
+  # GitHub Trending
+  - name: GitHub Trending
+    type: github-trending
+    languages:
+      - typescript
+      - rust
+      - go
+    category: repos
+    enabled: true
+
+  # Crypto
+  - name: CoinDesk
+    type: rss
+    url: https://www.coindesk.com/arc/outboundfeeds/rss/
+    category: crypto
+    enabled: true
+
+# User interests for Claude filtering
+interests:
+  - AI/LLM developments, especially Claude, GPT, agent frameworks
+  - React, Next.js, TypeScript frontend
+  - Rust, Go systems programming
+  - Laravel, PHP backend
+  - Interesting open source projects
+  - Cryptocurrency market trends, DeFi
+  - Game development, Deadlock, LoL
+
+# Categories with emoji for Discord
+categories:
+  ai: "🤖 AI/LLM"
+  tech: "💻 Tech"
+  frontend: "⚛️ Frontend"
+  backend: "🔧 Backend"
+  repos: "📦 Trending Repos"
+  crypto: "📊 Crypto"
+  tech-jp: "🇯🇵 日本語Tech"
+  gaming: "🎮 Gaming"

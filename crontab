@@ -1,0 +1,6 @@
+# News Bot cron schedule
+# Run every morning at 8:00 AM JST (23:00 UTC previous day)
+0 23 * * * cd /home/exedev/news-bot && /home/exedev/.bun/bin/bun run src/main.ts >> /home/exedev/news-bot/data/cron.log 2>&1
+
+# Optional: Run again at 6:00 PM JST (09:00 UTC)
+# 0 9 * * * cd /home/exedev/news-bot && /home/exedev/.bun/bin/bun run src/main.ts >> /home/exedev/news-bot/data/cron.log 2>&1

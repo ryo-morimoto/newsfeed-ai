@@ -1,0 +1,36 @@
+export interface HNItem {
+  title: string;
+  url: string;
+  score: number;
+  published?: Date;
+}
+
+const HN_API = "https://hacker-news.firebaseio.com/v0";
+
+export async function fetchHackerNews(limit: number = 30): Promise<HNItem[]> {
+  try {
+    // Get top stories
+    const res = await fetch(`${HN_API}/topstories.json`);
+    const ids: number[] = await res.json();
+    
+    // Fetch details for top N stories
+    const items = await Promise.all(
+      ids.slice(0, limit).map(async (id) => {
+        const itemRes = await fetch(`${HN_API}/item/${id}.json`);
+        return itemRes.json();
+      })
+    );
+    
+    return items
+      .filter((item) => item && item.url) // Only items with external URLs
+      .map((item) => ({
+        title: item.title || "No title",
+        url: item.url,
+        score: item.score || 0,
+        published: item.time ? new Date(item.time * 1000) : undefined,
+      }));
+  } catch (error) {
+    console.error("Failed to fetch Hacker News", error);
+    return [];
+  }
+}
