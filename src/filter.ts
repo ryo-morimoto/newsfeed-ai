@@ -28,8 +28,8 @@ export async function filterArticles(
 
   if (articles.length === 0) return [];
 
-  // Batch articles for efficiency
-  const batchSize = 20;
+  // Batch articles - smaller batches to stay under rate limit
+  const batchSize = 10;
   const results: FilteredArticle[] = [];
 
   for (let i = 0; i < articles.length; i += batchSize) {
@@ -101,9 +101,9 @@ Only include articles with score >= 0.5`;
       );
     }
 
-    // Rate limit: small delay between batches
+    // Rate limit: wait between batches (Groq free tier: 12k TPM)
     if (i + batchSize < articles.length) {
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 6000)); // 6 seconds
     }
   }
 

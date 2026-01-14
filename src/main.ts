@@ -16,6 +16,7 @@ const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const DRY_RUN = process.env.DRY_RUN === "true";
 const MAX_ARTICLES = parseInt(process.env.MAX_ARTICLES || "20");
+const MAX_PER_SOURCE = parseInt(process.env.MAX_PER_SOURCE || "10"); // Limit per source before filtering
 
 async function main() {
   console.log("\n🚀 Starting news bot...");
@@ -29,14 +30,16 @@ async function main() {
 
   const allArticles: ArticleToFilter[] = [];
 
-  // Fetch Hacker News
+  // Fetch Hacker News (top stories only)
   const hnSource = getHackerNewsSource();
   if (hnSource) {
     console.log(`\n📡 Fetching ${hnSource.name}...`);
     const hnItems = await fetchHackerNews(30);
     console.log(`  Found ${hnItems.length} items`);
 
+    let added = 0;
     for (const item of hnItems) {
+      if (added >= MAX_PER_SOURCE) break;
       if (!isArticleSeen(item.url)) {
         allArticles.push({
           title: item.title,
@@ -45,17 +48,21 @@ async function main() {
           category: hnSource.category,
           content: `Score: ${item.score}`,
         });
+        added++;
       }
     }
+    console.log(`  Added ${added} new items`);
   }
 
-  // Fetch RSS feeds
+  // Fetch RSS feeds (limit per source)
   for (const source of getRssSources()) {
     console.log(`📡 Fetching ${source.name}...`);
     const items = await fetchRss(source.url);
     console.log(`  Found ${items.length} items`);
 
+    let added = 0;
     for (const item of items) {
+      if (added >= MAX_PER_SOURCE) break;
       if (!isArticleSeen(item.url)) {
         allArticles.push({
           title: item.title,
@@ -64,8 +71,10 @@ async function main() {
           category: source.category,
           content: item.content,
         });
+        added++;
       }
     }
+    console.log(`  Added ${added} new items`);
   }
 
   // Fetch GitHub Trending
@@ -75,7 +84,9 @@ async function main() {
     const repos = await fetchGitHubTrending(ghSource.languages);
     console.log(`  Found ${repos.length} repos`);
 
+    let added = 0;
     for (const repo of repos) {
+      if (added >= MAX_PER_SOURCE) break;
       if (!isArticleSeen(repo.url)) {
         allArticles.push({
           title: repo.title,
@@ -84,8 +95,10 @@ async function main() {
           category: ghSource.category,
           content: `${repo.description} (★${repo.stars} today)`,
         });
+        added++;
       }
     }
+    console.log(`  Added ${added} new repos`);
   }
 
   console.log(`\n📊 Total new articles: ${allArticles.length}`);
