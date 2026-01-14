@@ -1,6 +1,4 @@
 import { initDb, isArticleSeen, saveArticle, markAsNotified } from "./db";
-import { Client, GatewayIntentBits, Events } from "discord.js";
-import { sendArticlesViaBot } from "./bot-notify";
 import { fetchRss } from "./sources/rss";
 import { fetchHackerNews } from "./sources/hackernews";
 import { fetchGitHubTrending } from "./sources/github-trending";
@@ -16,14 +14,11 @@ import {
 
 // Environment variables
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
-const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || "";
-const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || "";
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const DRY_RUN = process.env.DRY_RUN === "true";
 const MAX_ARTICLES = parseInt(process.env.MAX_ARTICLES || "20");
 const MAX_PER_SOURCE = parseInt(process.env.MAX_PER_SOURCE || "10"); // Limit per source before filtering
 const EMBED_FORMAT = process.env.EMBED_FORMAT || "text"; // text, digest, category
-const USE_BOT = process.env.USE_BOT === "true"; // Use Bot instead of webhook
 
 async function main() {
   console.log("\n🚀 Starting news bot...");
@@ -159,55 +154,27 @@ async function main() {
     if (article.summary) console.log(`    → ${article.summary}`);
   }
 
-  // Send to Discord
-  if (!DRY_RUN) {
+  // Send to Discord (webhook)
+  if (!DRY_RUN && DISCORD_WEBHOOK) {
+    console.log(`\n📤 Sending to Discord (format: ${EMBED_FORMAT})...`);
     let success = false;
-
-    if (USE_BOT && DISCORD_BOT_TOKEN && DISCORD_CHANNEL_ID) {
-      // Use Bot for posting (enables reaction tracking)
-      console.log("\n📤 Sending via Discord Bot...");
-      
-      const client = new Client({
-        intents: [
-          GatewayIntentBits.Guilds,
-          GatewayIntentBits.GuildMessages,
-        ],
-      });
-
-      await client.login(DISCORD_BOT_TOKEN);
-      
-      // Wait for ready
-      await new Promise<void>((resolve) => {
-        client.once(Events.ClientReady, () => resolve());
-      });
-
-      success = await sendArticlesViaBot(client, DISCORD_CHANNEL_ID, toNotify);
-      
-      // Disconnect after sending
-      client.destroy();
-    } else if (DISCORD_WEBHOOK) {
-      // Fallback to webhook
-      console.log(`\n📤 Sending to Discord webhook (format: ${EMBED_FORMAT})...`);
-      
-      if (EMBED_FORMAT === "digest") {
-        const embeds = createDigestEmbed(toNotify);
-        success = await sendEmbedsToDiscord(DISCORD_WEBHOOK, embeds);
-      } else if (EMBED_FORMAT === "category") {
-        const embeds = createCategoryEmbeds(toNotify);
-        success = await sendEmbedsToDiscord(DISCORD_WEBHOOK, embeds);
-      } else {
-        success = await sendToDiscord(DISCORD_WEBHOOK, toNotify);
-      }
+    
+    if (EMBED_FORMAT === "digest") {
+      const embeds = createDigestEmbed(toNotify);
+      success = await sendEmbedsToDiscord(DISCORD_WEBHOOK, embeds);
+    } else if (EMBED_FORMAT === "category") {
+      const embeds = createCategoryEmbeds(toNotify);
+      success = await sendEmbedsToDiscord(DISCORD_WEBHOOK, embeds);
     } else {
-      console.log("\n⚠️ No Discord credentials configured");
+      success = await sendToDiscord(DISCORD_WEBHOOK, toNotify);
     }
-
+    
     if (success) {
       markAsNotified(toNotify.map((a) => a.url));
       console.log("✅ Notifications sent!");
     }
   } else {
-    console.log("\n⚠️ Dry run - not sending to Discord");
+    console.log("\n⚠️ Dry run or no webhook configured");
   }
 
   console.log("\n✨ Done!");
