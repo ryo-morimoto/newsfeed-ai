@@ -1,3 +1,5 @@
+import { getInterests } from "./config";
+
 export interface ArticleToFilter {
   title: string;
   url: string;
@@ -11,16 +13,9 @@ export interface FilteredArticle extends ArticleToFilter {
   reason: string;
 }
 
-const INTERESTS = `
-- AI/LLM: Claude, GPT, agent frameworks, RAG, prompt engineering
-- Frontend: React, Next.js, TypeScript, Tailwind, new JS frameworks
-- Systems: Rust, Go, performance optimization
-- Backend: Laravel, PHP, database design
-- DevOps: Kubernetes, Docker, CI/CD
-- Open Source: interesting new projects, major releases
-- Crypto: DeFi, market trends, technical developments
-- Gaming: game development, competitive gaming (Deadlock, LoL)
-`;
+function getInterestsPrompt(): string {
+  return getInterests().map((i) => `- ${i}`).join("\n");
+}
 
 export async function filterArticles(
   articles: ArticleToFilter[],
@@ -41,7 +36,7 @@ export async function filterArticles(
     const batch = articles.slice(i, i + batchSize);
 
     const prompt = `You are filtering news articles for a developer. Score each article 0-1 based on relevance to these interests:
-${INTERESTS}
+${getInterestsPrompt()}
 
 Articles to evaluate:
 ${batch.map((a, idx) => `[${idx}] ${a.title} (${a.source}) - ${a.content?.slice(0, 200) || "no description"}`).join("\n")}

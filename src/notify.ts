@@ -1,3 +1,5 @@
+import { getCategoryEmoji } from "./config";
+
 export interface NotifyArticle {
   title: string;
   url: string;
@@ -6,16 +8,7 @@ export interface NotifyArticle {
   source: string;
 }
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  ai: "🤖 AI/LLM",
-  tech: "💻 Tech",
-  frontend: "⚛️ Frontend",
-  backend: "🔧 Backend",
-  repos: "📦 Trending Repos",
-  crypto: "📊 Crypto",
-  "tech-jp": "🇯🇵 日本語Tech",
-  gaming: "🎮 Gaming",
-};
+
 
 export async function sendToDiscord(
   webhookUrl: string,
@@ -47,7 +40,7 @@ export async function sendToDiscord(
   let content = `📰 **Today's Tech Digest** (${today})\n\n`;
 
   for (const [category, items] of Object.entries(grouped)) {
-    const emoji = CATEGORY_EMOJI[category] || `📌 ${category}`;
+    const emoji = getCategoryEmoji(category);
     content += `**${emoji}**\n`;
 
     for (const item of items.slice(0, 5)) {
