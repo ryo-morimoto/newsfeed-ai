@@ -69,6 +69,15 @@ crontab -e
 7. Save      → Store in SQLite for dedup
 ```
 
+## Ideas / TODO
+
+- Discord reaction (👍👎) でフィードバック収集
+- フィードバックからスコアリング調整
+- 動的な興味プロファイル（静的configではなく）
+- ソースごとの品質スコア
+- 新ソースの自動発見
+- Web UI / API
+
 ## License
 
 MIT
