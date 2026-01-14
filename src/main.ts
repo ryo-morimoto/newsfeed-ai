@@ -132,7 +132,7 @@ async function main() {
     summary: a.summary,
     category: a.category,
     source: a.source,
-    published: (a as ArticleToFilter).published,
+    published: a.published,
   }));
 
   // Save all fetched articles to DB (for dedup next time)

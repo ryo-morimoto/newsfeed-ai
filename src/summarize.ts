@@ -4,6 +4,7 @@ export interface ArticleToSummarize {
   source: string;
   category: string;
   content?: string;
+  published?: Date;
 }
 
 export interface SummarizedArticle extends ArticleToSummarize {
