@@ -35,6 +35,14 @@ let currentDbPath: string = DEFAULT_DB_PATH;
  * Initialize database with optional custom path (for testing)
  */
 export function ensureDb(dbPath?: string) {
+  // Close existing connection if any
+  if (db) {
+    try {
+      db.close();
+    } catch {
+      // Ignore close errors
+    }
+  }
   currentDbPath = dbPath || DEFAULT_DB_PATH;
   db = new Database(currentDbPath);
 
