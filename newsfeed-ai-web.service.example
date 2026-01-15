@@ -1,0 +1,16 @@
+[Unit]
+Description=Newsfeed AI Web UI
+After=network.target
+
+[Service]
+Type=simple
+User=__USER__
+Environment=HOME=/home/__USER__
+WorkingDirectory=/home/__USER__/newsfeed-ai/web
+ExecStart=/home/__USER__/.bun/bin/bun run start
+Restart=always
+RestartSec=10
+Environment=PORT=3000
+
+[Install]
+WantedBy=multi-user.target
