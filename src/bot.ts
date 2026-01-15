@@ -151,19 +151,14 @@ async function sendTaskNotification(task: TaskCompletionInfo) {
   let content: string;
 
   if (task.status === "completed") {
-    content = `🎉 **Task completed!**\nTask ID: \`${task.taskId}\``;
-
-    if (task.branch) {
-      content += `\nBranch: \`${task.branch}\``;
-    }
-
+    // Compact format: just show PR link (wrapped in <> to disable preview)
     if (task.prUrl) {
-      content += `\n\n📝 **PR created:** ${task.prUrl}`;
+      content = `✅ Done → <${task.prUrl}>`;
     } else {
-      content += `\n\n⚠️ No PR found. Check vibe-kanban for details.`;
+      content = `✅ Done (no PR)`;
     }
   } else {
-    content = `❌ **Task failed**\nTask ID: \`${task.taskId}\`\nError: ${task.error || "Unknown error"}\n\nCheck vibe-kanban for details.`;
+    content = `❌ Failed: ${task.error || "Unknown error"}`;
   }
 
   try {
@@ -241,17 +236,8 @@ async function handleFeedbackInteraction(
     const result: FeedbackResult = await runFeedbackAgent(feedbackText, requestedBy);
 
     if (result.success && result.taskId && result.attemptId) {
-      let response =
-        `**Task started!**\n` +
-        `> ${feedbackText}\n\n` +
-        `Task ID: \`${result.taskId}\`\n` +
-        `Attempt ID: \`${result.attemptId}\`\n\n` +
-        `vibe-kanban is now running claude-code on this task.\n` +
-        `I'll notify you when it's done!`;
-
-      if (result.prUrl) {
-        response += `\n\nPR: ${result.prUrl}`;
-      }
+      // Compact format: just show the request and task ID
+      const response = `🚀 Started: ${feedbackText.slice(0, 100)}${feedbackText.length > 100 ? "..." : ""}`;
 
       const replyMessage = await interaction.editReply(response);
 
@@ -260,18 +246,11 @@ async function handleFeedbackInteraction(
 
     } else if (result.taskId) {
       await interaction.editReply(
-        `Task created but execution not started.\n` +
-          `> ${feedbackText}\n\n` +
-          `Task ID: \`${result.taskId}\`\n` +
-          `Error: ${result.error || "Unknown error"}\n\n` +
-          `Check vibe-kanban UI for details.`
+        `⚠️ Task created but not started: ${result.error || "Unknown error"}`
       );
     } else {
       await interaction.editReply(
-        `Failed to create task.\n` +
-          `> ${feedbackText}\n\n` +
-          `Error: ${result.error || "Unknown error"}\n\n` +
-          `Make sure vibe-kanban is running.`
+        `❌ Failed: ${result.error || "Unknown error"}`
       );
     }
   } catch (error) {
