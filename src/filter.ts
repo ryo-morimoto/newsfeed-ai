@@ -14,6 +14,40 @@ export interface FilteredArticle extends ArticleToFilter {
   reason: string;
 }
 
+// Freshness decay settings
+const FRESHNESS_DECAY_PER_DAY = 0.1; // 10% score reduction per day
+const FRESHNESS_MIN_FACTOR = 0.3; // Minimum 30% of original score
+const MAX_AGE_DAYS = 14; // Articles older than this are excluded
+
+/**
+ * Calculate freshness factor based on article age.
+ * Newer articles get higher scores, older articles get penalized.
+ */
+function calculateFreshnessFactor(published?: Date): number {
+  if (!published) {
+    // If no publish date, assume it's relatively fresh (factor 0.8)
+    return 0.8;
+  }
+
+  const now = new Date();
+  const ageInMs = now.getTime() - published.getTime();
+  const ageInDays = ageInMs / (1000 * 60 * 60 * 24);
+
+  // Articles older than MAX_AGE_DAYS get excluded (return 0)
+  if (ageInDays > MAX_AGE_DAYS) {
+    return 0;
+  }
+
+  // Linear decay: 1.0 at day 0, decreasing by DECAY_PER_DAY each day
+  // Minimum is FRESHNESS_MIN_FACTOR
+  const factor = Math.max(
+    FRESHNESS_MIN_FACTOR,
+    1 - ageInDays * FRESHNESS_DECAY_PER_DAY
+  );
+
+  return factor;
+}
+
 function getInterestsPrompt(): string {
   return getInterests().map((i) => `- ${i}`).join("\n");
 }
@@ -111,6 +145,21 @@ Only include articles with score >= 0.5`;
     }
   }
 
-  // Sort by score
-  return results.sort((a, b) => b.score - a.score);
+  // Apply freshness factor and sort by adjusted score
+  const withFreshness = results.map((article) => {
+    const freshnessFactor = calculateFreshnessFactor(article.published);
+    const adjustedScore = article.score * freshnessFactor;
+    return {
+      ...article,
+      score: adjustedScore,
+      originalScore: article.score,
+      freshnessFactor,
+    };
+  });
+
+  // Filter out articles that are too old (freshnessFactor = 0)
+  const freshEnough = withFreshness.filter((a) => a.freshnessFactor > 0);
+
+  // Sort by adjusted score (relevance × freshness)
+  return freshEnough.sort((a, b) => b.score - a.score);
 }
