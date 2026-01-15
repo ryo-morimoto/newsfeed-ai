@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BOT_SERVICE="newsfeed-ai-bot"
 WEB_SERVICE="newsfeed-ai-web"
+DEPLOY_USER="${DEPLOY_USER:-exedev}"
 
 echo "🚀 Deploying newsfeed-ai..."
 
@@ -21,6 +22,36 @@ if [ -z "$CI" ]; then
     echo "📦 Installing dependencies..."
     bun install
 fi
+
+# Update systemd service files from examples
+update_service_file() {
+    local example_file="$1"
+    local service_name="$2"
+    local system_file="/etc/systemd/system/${service_name}.service"
+
+    if [ -f "$example_file" ]; then
+        # Generate service file from example
+        local generated=$(sed "s/__USER__/$DEPLOY_USER/g" "$example_file")
+
+        # Check if system file exists and differs
+        if [ -f "$system_file" ]; then
+            local current=$(sudo cat "$system_file")
+            if [ "$generated" != "$current" ]; then
+                echo "📝 Updating $service_name service file..."
+                echo "$generated" | sudo tee "$system_file" > /dev/null
+                sudo systemctl daemon-reload
+            fi
+        else
+            echo "📝 Installing $service_name service file..."
+            echo "$generated" | sudo tee "$system_file" > /dev/null
+            sudo systemctl daemon-reload
+            sudo systemctl enable "$service_name"
+        fi
+    fi
+}
+
+update_service_file "$PROJECT_DIR/newsfeed-ai-bot.service.example" "$BOT_SERVICE"
+update_service_file "$PROJECT_DIR/newsfeed-ai-web.service.example" "$WEB_SERVICE"
 
 # Build web UI
 echo "🔨 Building web UI..."
@@ -43,8 +74,8 @@ else
     exit 1
 fi
 
-# Restart web service (if exists)
-if systemctl list-unit-files | grep -q "$WEB_SERVICE"; then
+# Restart web service (if installed)
+if [ -f "/etc/systemd/system/${WEB_SERVICE}.service" ]; then
     echo "🔄 Restarting web service..."
     sudo systemctl restart "$WEB_SERVICE"
 
@@ -57,7 +88,7 @@ if systemctl list-unit-files | grep -q "$WEB_SERVICE"; then
         exit 1
     fi
 else
-    echo "⚠️  Web service not configured. Skipping."
+    echo "⚠️  Web service not configured (no example file). Skipping."
 fi
 
 echo "✅ Deploy complete!"
