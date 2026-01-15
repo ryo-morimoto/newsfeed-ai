@@ -2,8 +2,8 @@ import { Glob } from "bun";
 import { join, extname } from "path";
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
-const DIST_DIR = join(import.meta.dir, ".output");
-const PUBLIC_DIR = join(DIST_DIR, "public");
+const DIST_DIR = join(import.meta.dir, "dist");
+const PUBLIC_DIR = join(DIST_DIR, "client");
 const SERVER_DIR = join(DIST_DIR, "server");
 
 // MIME types
@@ -43,9 +43,10 @@ async function preloadStaticAssets() {
 
 // Import the handler from the built server
 async function loadHandler() {
-  const handlerPath = join(SERVER_DIR, "index.mjs");
-  const handler = await import(handlerPath);
-  return handler.default || handler;
+  const handlerPath = join(SERVER_DIR, "server.js");
+  const mod = await import(handlerPath);
+  // TanStack Start exports { default: { fetch }, fetch }
+  return mod.default?.fetch || mod.fetch;
 }
 
 async function main() {

@@ -5,23 +5,40 @@ set -e
 # Usage: ./scripts/deploy.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+SOURCE_DIR="$(dirname "$SCRIPT_DIR")"
 BOT_SERVICE="newsfeed-ai-bot"
 WEB_SERVICE="newsfeed-ai-web"
 DEPLOY_USER="${DEPLOY_USER:-exedev}"
+DEPLOY_DIR="/home/$DEPLOY_USER/newsfeed-ai"
 
 echo "🚀 Deploying newsfeed-ai..."
 
-cd "$PROJECT_DIR"
+# In CI, update the deploy directory from remote
+# (CI runner checks out to a different directory, but services run from DEPLOY_DIR)
+if [ -n "$CI" ]; then
+    echo "📥 Updating deploy directory..."
+    cd "$DEPLOY_DIR"
+    git fetch origin main
+    git reset --hard origin/main
 
-# Skip git pull in CI (already checked out by GitHub Actions)
+    echo "📦 Installing dependencies..."
+    bun install
+fi
+
+# For manual deploys, pull and install in the current directory
 if [ -z "$CI" ]; then
+    cd "$SOURCE_DIR"
     echo "📥 Pulling latest changes..."
     git pull --ff-only
 
     echo "📦 Installing dependencies..."
     bun install
+    DEPLOY_DIR="$SOURCE_DIR"
 fi
+
+# From here, work in the deploy directory
+cd "$DEPLOY_DIR"
+PROJECT_DIR="$DEPLOY_DIR"
 
 # Update systemd service files from examples
 update_service_file() {

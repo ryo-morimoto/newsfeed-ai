@@ -79,7 +79,21 @@ export function ensureDb(dbPath?: string) {
     CREATE INDEX IF NOT EXISTS idx_task_id ON pending_task_notifications(task_id);
     CREATE INDEX IF NOT EXISTS idx_pending ON pending_task_notifications(notified_at);
   `);
-  
+
+  // Migration: Add new columns to existing tables
+  const columns = db.query("PRAGMA table_info(articles)").all() as { name: string }[];
+  const columnNames = columns.map(c => c.name);
+
+  if (!columnNames.includes("detailed_summary")) {
+    db.exec("ALTER TABLE articles ADD COLUMN detailed_summary TEXT");
+  }
+  if (!columnNames.includes("key_points")) {
+    db.exec("ALTER TABLE articles ADD COLUMN key_points TEXT");
+  }
+  if (!columnNames.includes("target_audience")) {
+    db.exec("ALTER TABLE articles ADD COLUMN target_audience TEXT");
+  }
+
   return db;
 }
 

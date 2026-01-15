@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { Database } from "bun:sqlite";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -6,8 +6,9 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// DBパスは親ディレクトリのdata/history.db
-const DB_PATH = join(__dirname, "..", "..", "..", "data", "history.db");
+// DBパスは親プロジェクトのdata/history.db
+// ビルド後は dist/server/assets/ にあるので4階層上
+const DB_PATH = join(__dirname, "..", "..", "..", "..", "data", "history.db");
 
 export interface Article {
   id?: number;
@@ -25,9 +26,9 @@ export interface Article {
   notified: number;
 }
 
-let db: Database.Database | null = null;
+let db: Database | null = null;
 
-function getDb(): Database.Database {
+function getDb(): Database {
   if (!db) {
     db = new Database(DB_PATH, { readonly: true });
   }
