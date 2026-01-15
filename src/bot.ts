@@ -12,6 +12,7 @@ import { ensureDb } from "./db";
 import { runNewsfeed, markArticlesNotified } from "./main";
 import { sendEmbedsViaBot } from "./discord-embed";
 import { runFeedbackAgent, type FeedbackResult } from "./agent-feedback";
+import { watchTask, checkPendingTasks, cleanup, type TaskCompletionInfo } from "./task-monitor";
 
 // Initialize database
 ensureDb();
@@ -25,6 +26,9 @@ const client = new Client({
 });
 
 const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || "";
+
+// Task check interval (30 seconds)
+const TASK_CHECK_INTERVAL_MS = 30_000;
 
 // Define slash commands
 const commands = [
@@ -76,7 +80,7 @@ let lastRunHour = -1;
  */
 async function runScheduledNewsfeed() {
   console.log(`\n⏰ Running scheduled newsfeed...`);
-  
+
   const channel = client.channels.cache.get(CHANNEL_ID) as TextChannel;
   if (!channel) {
     console.error(`Channel ${CHANNEL_ID} not found`);
@@ -119,6 +123,60 @@ function checkSchedule() {
   }
 }
 
+/**
+ * Check pending tasks and send notifications for completed ones
+ */
+async function checkAndNotifyTasks() {
+  try {
+    const completedTasks = await checkPendingTasks();
+
+    for (const task of completedTasks) {
+      await sendTaskNotification(task);
+    }
+  } catch (error) {
+    console.error("[task-monitor] Error checking tasks:", error);
+  }
+}
+
+/**
+ * Send Discord notification for a completed task
+ */
+async function sendTaskNotification(task: TaskCompletionInfo) {
+  const channel = client.channels.cache.get(task.channelId) as TextChannel;
+  if (!channel) {
+    console.error(`[task-monitor] Channel ${task.channelId} not found`);
+    return;
+  }
+
+  let content: string;
+
+  if (task.status === "completed") {
+    content = `🎉 **Task completed!**\nTask ID: \`${task.taskId}\``;
+
+    if (task.branch) {
+      content += `\nBranch: \`${task.branch}\``;
+    }
+
+    if (task.prUrl) {
+      content += `\n\n📝 **PR created:** ${task.prUrl}`;
+    } else {
+      content += `\n\n⚠️ No PR found. Check vibe-kanban for details.`;
+    }
+  } else {
+    content = `❌ **Task failed**\nTask ID: \`${task.taskId}\`\nError: ${task.error || "Unknown error"}\n\nCheck vibe-kanban for details.`;
+  }
+
+  try {
+    await channel.send({
+      content,
+      reply: { messageReference: task.messageId },
+    });
+  } catch {
+    // If reply fails (e.g., message too old), just send to channel
+    await channel.send(content);
+  }
+}
+
 client.once(Events.ClientReady, async (c) => {
   console.log(`✅ Bot ready: ${c.user.tag}`);
   console.log(`📅 Scheduled hours (UTC): ${SCHEDULE_HOURS_UTC.join(", ")}`);
@@ -133,8 +191,15 @@ client.once(Events.ClientReady, async (c) => {
   // Check schedule every minute
   setInterval(checkSchedule, 60 * 1000);
 
-  // Also check immediately on startup
+  // Check pending tasks every 30 seconds
+  setInterval(checkAndNotifyTasks, TASK_CHECK_INTERVAL_MS);
+
+  // Cleanup old task notifications daily
+  setInterval(() => cleanup(7), 24 * 60 * 60 * 1000);
+
+  // Run checks immediately on startup
   checkSchedule();
+  checkAndNotifyTasks();
 });
 
 // Handle slash commands
@@ -181,13 +246,18 @@ async function handleFeedbackInteraction(
         `> ${feedbackText}\n\n` +
         `Task ID: \`${result.taskId}\`\n` +
         `Attempt ID: \`${result.attemptId}\`\n\n` +
-        `vibe-kanban is now running claude-code on this task.`;
+        `vibe-kanban is now running claude-code on this task.\n` +
+        `I'll notify you when it's done!`;
 
       if (result.prUrl) {
         response += `\n\nPR: ${result.prUrl}`;
       }
 
-      await interaction.editReply(response);
+      const replyMessage = await interaction.editReply(response);
+
+      // Register task for notification (stateless - survives bot restarts)
+      watchTask(result.taskId, interaction.channelId, replyMessage.id);
+
     } else if (result.taskId) {
       await interaction.editReply(
         `Task created but execution not started.\n` +
