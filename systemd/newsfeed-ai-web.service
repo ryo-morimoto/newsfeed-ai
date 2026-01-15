@@ -1,0 +1,27 @@
+# Newsfeed AI Web UI Server
+# Copy to /etc/systemd/system/ and customize paths
+#
+# Installation:
+#   1. Copy this file: sudo cp newsfeed-ai-web.service /etc/systemd/system/
+#   2. Edit paths to match your environment
+#   3. Enable: sudo systemctl enable newsfeed-ai-web
+#   4. Start: sudo systemctl start newsfeed-ai-web
+
+[Unit]
+Description=Newsfeed AI Web UI Server
+After=network.target
+
+[Service]
+Type=simple
+# TODO: Change to your user
+User=%USER%
+# TODO: Change to your installation directory
+WorkingDirectory=%INSTALL_DIR%/web
+# TODO: Change to your bun path (run `which bun` to find it)
+ExecStart=%BUN_PATH% run start
+Restart=always
+RestartSec=10
+Environment=PORT=3000
+
+[Install]
+WantedBy=multi-user.target
