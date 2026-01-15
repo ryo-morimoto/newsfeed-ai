@@ -1,6 +1,6 @@
 import { test, expect, describe, beforeEach, afterEach } from "bun:test";
-import { join } from "path";
-import { unlinkSync, existsSync } from "fs";
+import { join, dirname } from "path";
+import { unlinkSync, existsSync, mkdirSync } from "fs";
 import {
   ensureDb,
   closeDb,
@@ -14,6 +14,11 @@ const TEST_DB_PATH = join(import.meta.dir, "..", "data", "test-history.db");
 
 describe("Database Operations", () => {
   beforeEach(() => {
+    // Ensure data directory exists
+    const dataDir = dirname(TEST_DB_PATH);
+    if (!existsSync(dataDir)) {
+      mkdirSync(dataDir, { recursive: true });
+    }
     // Clean up any existing test DB
     if (existsSync(TEST_DB_PATH)) {
       unlinkSync(TEST_DB_PATH);
