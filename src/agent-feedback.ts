@@ -72,16 +72,17 @@ ${feedback}
 
 ## Instructions
 1. First, call list_projects to find the newsfeed-ai project${projectId ? ` (project_id: ${projectId})` : ""}
-2. Call create_task with:
+2. Call list_repos with the project_id to get the repo_id
+3. Call create_task with:
    - project_id: the newsfeed-ai project ID
    - title: A concise title for this task
    - description: "${feedback}\\n\\nRequested by: ${requestedBy}"
-3. Call start_task_attempt with:
+4. Call start_workspace_session with:
    - task_id: the created task ID
-   - executor: "claude-code"
-   - base_branch: "main"
+   - executor: "CLAUDE_CODE"
+   - repos: [{ repo_id: <the repo_id from step 2>, base_branch: "main" }]
 
-Report back the task_id and attempt_id once started.
+Report back the task_id and session_id once started.
 The vibe-kanban system will handle the actual implementation in an isolated worktree.
 `.trim();
 
@@ -94,7 +95,14 @@ The vibe-kanban system will handle the actual implementation in an isolated work
       prompt,
       options: {
         cwd: process.cwd(),
-        allowedTools: ["mcp__vibe-kanban__list_projects", "mcp__vibe-kanban__create_task", "mcp__vibe-kanban__start_task_attempt", "mcp__vibe-kanban__list_tasks", "mcp__vibe-kanban__get_task"],
+        allowedTools: [
+          "mcp__vibe-kanban__list_projects",
+          "mcp__vibe-kanban__create_task",
+          "mcp__vibe-kanban__list_repos",
+          "mcp__vibe-kanban__start_workspace_session",
+          "mcp__vibe-kanban__list_tasks",
+          "mcp__vibe-kanban__get_task",
+        ],
         mcpServers: await getVibeKanbanMcpConfig(),
         permissionMode: "acceptEdits",
         maxTurns: 10,
@@ -102,33 +110,33 @@ The vibe-kanban system will handle the actual implementation in an isolated work
     })) {
       const msg = message as SDKMessage;
 
-      // Extract task_id and attempt_id from assistant messages
-      if (msg.type === "assistant" && "content" in msg) {
-        const content = msg.content;
-        if (Array.isArray(content)) {
-          for (const block of content) {
-            if (block.type === "text") {
-              // Look for task_id (UUID or alphanumeric with dashes)
-              const taskMatch = block.text.match(/task_id[:\s]+["']?([a-zA-Z0-9-]+)["']?/i);
-              if (taskMatch) {
-                taskId = taskMatch[1];
-                log(`Task created: ${taskId}`);
-              }
-
-              // Look for attempt_id (UUID or alphanumeric with dashes)
-              const attemptMatch = block.text.match(/attempt_id[:\s]+["']?([a-zA-Z0-9-]+)["']?/i);
-              if (attemptMatch) {
-                attemptId = attemptMatch[1];
-                log(`Attempt started: ${attemptId}`);
-              }
-
-              // Look for PR URL
-              const prMatch = block.text.match(
-                /https:\/\/github\.com\/[^\s]+\/pull\/\d+/
-              );
-              if (prMatch) {
-                prUrl = prMatch[0];
-                log(`PR created: ${prUrl}`);
+      // Extract task_id and session_id from tool results
+      if (msg.type === "user" && "tool_use_result" in msg) {
+        const toolResult = (msg as any).tool_use_result;
+        if (Array.isArray(toolResult)) {
+          for (const result of toolResult) {
+            if (result.type === "text" && typeof result.text === "string") {
+              try {
+                const data = JSON.parse(result.text);
+                if (data.task_id && !taskId) {
+                  taskId = data.task_id;
+                  log(`Task created: ${taskId}`);
+                }
+                if (data.session_id && !attemptId) {
+                  attemptId = data.session_id;
+                  log(`Session started: ${attemptId}`);
+                }
+                if (data.workspace_id && !attemptId) {
+                  attemptId = data.workspace_id;
+                  log(`Workspace started: ${attemptId}`);
+                }
+              } catch {
+                // Not JSON, try regex
+                const taskMatch = result.text.match(/task_id[:\s]+["']?([a-zA-Z0-9-]+)["']?/i);
+                if (taskMatch && !taskId) {
+                  taskId = taskMatch[1];
+                  log(`Task created: ${taskId}`);
+                }
               }
             }
           }
@@ -136,15 +144,15 @@ The vibe-kanban system will handle the actual implementation in an isolated work
       }
 
       // Also check result messages
-      if ("result" in msg && typeof msg.result === "string") {
-        const taskMatch = msg.result.match(/task_id[:\s]+["']?([a-zA-Z0-9-]+)["']?/i);
-        if (taskMatch && !taskId) taskId = taskMatch[1];
+      if (msg.type === "result" && "result" in msg) {
+        const resultText = (msg as any).result;
+        if (typeof resultText === "string") {
+          const taskMatch = resultText.match(/task_id[:\s]+["'`]?([a-zA-Z0-9-]+)["'`]?/i);
+          if (taskMatch && !taskId) taskId = taskMatch[1];
 
-        const attemptMatch = msg.result.match(/attempt_id[:\s]+["']?([a-zA-Z0-9-]+)["']?/i);
-        if (attemptMatch && !attemptId) attemptId = attemptMatch[1];
-
-        const prMatch = msg.result.match(/https:\/\/github\.com\/[^\s]+\/pull\/\d+/);
-        if (prMatch && !prUrl) prUrl = prMatch[0];
+          const prMatch = resultText.match(/https:\/\/github\.com\/[^\s]+\/pull\/\d+/);
+          if (prMatch && !prUrl) prUrl = prMatch[0];
+        }
       }
     }
 

@@ -32,25 +32,25 @@ describe("Agent Feedback Integration (vibe-kanban MCP)", () => {
   });
 
   describe("runFeedbackAgent with mocked SDK", () => {
-    test("returns success when task and attempt IDs are found", async () => {
+    test("returns success when task and workspace IDs are found", async () => {
       mockQuery.mockImplementation(() => {
         return (async function* () {
           yield {
-            type: "assistant",
-            content: [
+            type: "user",
+            tool_use_result: [
               {
                 type: "text",
-                text: 'Task created with task_id: "abc-123-def"',
+                text: '{"task_id": "abc-123-def"}',
               },
             ],
             session_id: "test-session",
           };
           yield {
-            type: "assistant",
-            content: [
+            type: "user",
+            tool_use_result: [
               {
                 type: "text",
-                text: 'Attempt started with attempt_id: "xyz-789"',
+                text: '{"task_id": "abc-123-def", "workspace_id": "xyz-789"}',
               },
             ],
             session_id: "test-session",
@@ -69,13 +69,19 @@ describe("Agent Feedback Integration (vibe-kanban MCP)", () => {
       mockQuery.mockImplementation(() => {
         return (async function* () {
           yield {
-            type: "assistant",
-            content: [
+            type: "user",
+            tool_use_result: [
               {
                 type: "text",
-                text: 'task_id: "task-1" attempt_id: "attempt-1" PR: https://github.com/owner/repo/pull/123',
+                text: '{"task_id": "task-1", "workspace_id": "workspace-1"}',
               },
             ],
+            session_id: "test-session",
+          };
+          yield {
+            type: "result",
+            subtype: "success",
+            result: "PR created: https://github.com/owner/repo/pull/123",
             session_id: "test-session",
           };
         })();
@@ -91,13 +97,19 @@ describe("Agent Feedback Integration (vibe-kanban MCP)", () => {
       mockQuery.mockImplementation(() => {
         return (async function* () {
           yield {
-            type: "assistant",
-            content: [
+            type: "user",
+            tool_use_result: [
               {
                 type: "text",
-                text: 'Created task_id: abc-123 but start_task_attempt failed',
+                text: '{"task_id": "abc-123"}',
               },
             ],
+            session_id: "test-session",
+          };
+          yield {
+            type: "result",
+            subtype: "success",
+            result: "Failed to start workspace session",
             session_id: "test-session",
           };
         })();
@@ -148,8 +160,8 @@ describe("Agent Feedback Integration (vibe-kanban MCP)", () => {
       mockQuery.mockImplementation(() => {
         return (async function* () {
           yield {
-            type: "assistant",
-            content: [{ type: "text", text: "task_id: t1 attempt_id: a1" }],
+            type: "user",
+            tool_use_result: [{ type: "text", text: '{"task_id": "t1", "workspace_id": "w1"}' }],
             session_id: "test-session",
           };
         })();
@@ -165,13 +177,17 @@ describe("Agent Feedback Integration (vibe-kanban MCP)", () => {
       );
     });
 
-    test("extracts IDs from result message", async () => {
+    test("extracts IDs from tool result JSON", async () => {
       mockQuery.mockImplementation(() => {
         return (async function* () {
           yield {
-            type: "result",
-            subtype: "success",
-            result: 'task_id: "550e8400-e29b-41d4-a716-446655440000" attempt_id: "660f9500-f30c-52e5-b827-557766551111"',
+            type: "user",
+            tool_use_result: [
+              {
+                type: "text",
+                text: '{"task_id": "550e8400-e29b-41d4-a716-446655440000", "workspace_id": "660f9500-f30c-52e5-b827-557766551111"}',
+              },
+            ],
             session_id: "test-session",
           };
         })();
@@ -206,8 +222,8 @@ describe("Agent Feedback Integration (vibe-kanban MCP)", () => {
       expect(capturedPrompt).toContain("Add dark mode support");
       expect(capturedPrompt).toContain("list_projects");
       expect(capturedPrompt).toContain("create_task");
-      expect(capturedPrompt).toContain("start_task_attempt");
-      expect(capturedPrompt).toContain("claude-code");
+      expect(capturedPrompt).toContain("start_workspace_session");
+      expect(capturedPrompt).toContain("CLAUDE_CODE");
     });
 
     test("project ID is included when provided", async () => {
@@ -238,7 +254,10 @@ describe("Agent Feedback Integration (vibe-kanban MCP)", () => {
       mockQuery.mockImplementation((params: { options?: Record<string, unknown> }) => {
         capturedOptions = params.options || {};
         return (async function* () {
-          yield { type: "result", result: "task_id: t1 attempt_id: a1" };
+          yield {
+            type: "user",
+            tool_use_result: [{ type: "text", text: '{"task_id": "t1", "workspace_id": "w1"}' }],
+          };
         })();
       });
 
@@ -247,7 +266,8 @@ describe("Agent Feedback Integration (vibe-kanban MCP)", () => {
       const allowedTools = capturedOptions.allowedTools as string[];
       expect(allowedTools).toContain("mcp__vibe-kanban__list_projects");
       expect(allowedTools).toContain("mcp__vibe-kanban__create_task");
-      expect(allowedTools).toContain("mcp__vibe-kanban__start_task_attempt");
+      expect(allowedTools).toContain("mcp__vibe-kanban__list_repos");
+      expect(allowedTools).toContain("mcp__vibe-kanban__start_workspace_session");
     });
 
     test("passes VK_PORT env to MCP server when port file exists", async () => {
@@ -256,7 +276,10 @@ describe("Agent Feedback Integration (vibe-kanban MCP)", () => {
       mockQuery.mockImplementation((params: { options?: Record<string, unknown> }) => {
         capturedOptions = params.options || {};
         return (async function* () {
-          yield { type: "result", result: "task_id: t1 attempt_id: a1" };
+          yield {
+            type: "user",
+            tool_use_result: [{ type: "text", text: '{"task_id": "t1", "workspace_id": "w1"}' }],
+          };
         })();
       });
 
