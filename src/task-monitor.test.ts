@@ -9,9 +9,10 @@ import {
   markTaskNotified,
 } from "./db";
 import { join } from "path";
+import { tmpdir } from "os";
 import { unlinkSync, existsSync } from "fs";
 
-const TEST_DB_PATH = join(import.meta.dir, "..", "data", "test-task-monitor.db");
+const TEST_DB_PATH = join(tmpdir(), "test-task-monitor.db");
 
 describe("task-monitor (stateless)", () => {
   beforeEach(() => {
