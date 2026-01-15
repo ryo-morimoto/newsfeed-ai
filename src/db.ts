@@ -16,6 +16,15 @@ export interface Article {
   notified: number;
 }
 
+export interface PendingTaskNotification {
+  id?: number;
+  task_id: string;
+  channel_id: string;
+  message_id: string;
+  created_at?: string;
+  notified_at?: string;
+}
+
 let db: Database;
 let currentDbPath: string = DEFAULT_DB_PATH;
 
@@ -39,10 +48,22 @@ export function ensureDb(dbPath?: string) {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       notified INTEGER DEFAULT 0
     );
-    
+
     CREATE INDEX IF NOT EXISTS idx_url ON articles(url);
     CREATE INDEX IF NOT EXISTS idx_created ON articles(created_at);
     CREATE INDEX IF NOT EXISTS idx_notified ON articles(notified);
+
+    CREATE TABLE IF NOT EXISTS pending_task_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id TEXT UNIQUE NOT NULL,
+      channel_id TEXT NOT NULL,
+      message_id TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      notified_at TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_task_id ON pending_task_notifications(task_id);
+    CREATE INDEX IF NOT EXISTS idx_pending ON pending_task_notifications(notified_at);
   `);
   
   return db;
@@ -99,4 +120,62 @@ export function closeDb() {
     db.close();
     db = undefined!;
   }
+}
+
+// === Task notification functions ===
+
+/**
+ * Register a task for notification when it completes
+ */
+export function registerTaskNotification(taskId: string, channelId: string, messageId: string) {
+  const stmt = getDb().query(`
+    INSERT OR REPLACE INTO pending_task_notifications (task_id, channel_id, message_id, created_at)
+    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+  `);
+  return stmt.run(taskId, channelId, messageId);
+}
+
+/**
+ * Get all pending task notifications (not yet notified)
+ */
+export function getPendingTaskNotifications(): PendingTaskNotification[] {
+  return getDb().query(`
+    SELECT * FROM pending_task_notifications
+    WHERE notified_at IS NULL
+    ORDER BY created_at ASC
+  `).all() as PendingTaskNotification[];
+}
+
+/**
+ * Mark a task notification as sent
+ */
+export function markTaskNotified(taskId: string) {
+  const stmt = getDb().query(`
+    UPDATE pending_task_notifications
+    SET notified_at = CURRENT_TIMESTAMP
+    WHERE task_id = ?
+  `);
+  return stmt.run(taskId);
+}
+
+/**
+ * Get a specific pending notification by task ID
+ */
+export function getTaskNotification(taskId: string): PendingTaskNotification | null {
+  return getDb().query(`
+    SELECT * FROM pending_task_notifications
+    WHERE task_id = ?
+  `).get(taskId) as PendingTaskNotification | null;
+}
+
+/**
+ * Clean up old notified tasks (older than specified days)
+ */
+export function cleanupOldTaskNotifications(daysOld: number = 7) {
+  const stmt = getDb().query(`
+    DELETE FROM pending_task_notifications
+    WHERE notified_at IS NOT NULL
+    AND notified_at < datetime('now', '-' || ? || ' days')
+  `);
+  return stmt.run(daysOld);
 }
