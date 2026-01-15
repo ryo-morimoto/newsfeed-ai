@@ -10,14 +10,16 @@ SERVICE_NAME="newsfeed-ai-bot"
 
 echo "🚀 Deploying newsfeed-ai..."
 
-# Pull latest changes
 cd "$PROJECT_DIR"
-echo "📥 Pulling latest changes..."
-git pull --ff-only
 
-# Install dependencies
-echo "📦 Installing dependencies..."
-bun install
+# Skip git pull in CI (already checked out by GitHub Actions)
+if [ -z "$CI" ]; then
+    echo "📥 Pulling latest changes..."
+    git pull --ff-only
+
+    echo "📦 Installing dependencies..."
+    bun install
+fi
 
 # Restart service
 echo "🔄 Restarting service..."
