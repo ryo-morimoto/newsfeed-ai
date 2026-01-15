@@ -12,7 +12,8 @@
     "test:integration": "bun test src/__tests__/",
     "test:watch": "bun test --watch",
     "typecheck": "bun x tsc --noEmit",
-    "ci": "bun run typecheck && bun run test"
+    "ci": "bun run typecheck && bun run test",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
     "@types/bun": "latest",
