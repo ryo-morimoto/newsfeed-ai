@@ -219,9 +219,13 @@ JSON形式で出力:
     // Extract JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]) as PrContent;
-      console.log(`[task-monitor] Generated PR title: ${parsed.title}`);
-      return parsed;
+      try {
+        const parsed = JSON.parse(jsonMatch[0]) as PrContent;
+        console.log(`[task-monitor] Generated PR title: ${parsed.title}`);
+        return parsed;
+      } catch (parseError) {
+        console.log(`[task-monitor] JSON parse error, using fallback`);
+      }
     }
 
     return { title: originalRequest.slice(0, 72), description: originalRequest };
@@ -232,14 +236,54 @@ JSON形式で出力:
 }
 
 /**
+ * Push current branch to remote
+ */
+async function pushBranchToRemote(workdir: string, branch: string): Promise<boolean> {
+  try {
+    const proc = Bun.spawn(["git", "push", "-u", "origin", branch], {
+      cwd: workdir,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    await proc.exited;
+    const stderr = await new Response(proc.stderr).text();
+
+    if (proc.exitCode === 0) {
+      console.log(`[task-monitor] Pushed branch ${branch} to remote`);
+      return true;
+    }
+
+    // Already pushed is OK
+    if (stderr.includes("Everything up-to-date")) {
+      console.log(`[task-monitor] Branch ${branch} already up-to-date`);
+      return true;
+    }
+
+    console.log(`[task-monitor] git push failed: ${stderr}`);
+    return false;
+  } catch (error) {
+    console.error(`[task-monitor] Error pushing branch:`, error);
+    return false;
+  }
+}
+
+/**
  * Create a PR using gh CLI
  */
 async function createPrWithGh(
   workdir: string,
+  branch: string,
   title: string,
   description: string
 ): Promise<string | undefined> {
   try {
+    // First push the branch to remote
+    const pushed = await pushBranchToRemote(workdir, branch);
+    if (!pushed) {
+      console.log(`[task-monitor] Failed to push branch, cannot create PR`);
+      return undefined;
+    }
+
     const proc = Bun.spawn(
       ["gh", "pr", "create", "--title", title, "--body", description, "--base", "main"],
       {
@@ -316,7 +360,7 @@ export async function checkPendingTasks(): Promise<TaskCompletionInfo[]> {
         const prContent = await generatePrContent(task.title, diff, commits);
 
         // Create PR with gh CLI
-        prUrl = await createPrWithGh(workdir, prContent.title, prContent.description);
+        prUrl = await createPrWithGh(workdir, latestAttempt.branch, prContent.title, prContent.description);
       }
 
       completed.push({
