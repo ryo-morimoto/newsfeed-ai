@@ -89,10 +89,11 @@ describe("createArticleEmbeds", () => {
   test("embed has correct structure", () => {
     const embeds = createArticleEmbeds(sampleArticles);
     const firstEmbed = embeds[0];
-    
+
     expect(firstEmbed.title).toBe("New AI Model Released");
     expect(firstEmbed.url).toBe("https://example.com/ai-model");
-    expect(firstEmbed.description).toBe("革新的なAIモデルがリリースされました");
+    expect(firstEmbed.description).toContain("革新的なAIモデルがリリースされました");
+    expect(firstEmbed.description).toContain("[View Detailed Summary]");
     expect(firstEmbed.footer?.text).toContain("Tech News");
   });
 
@@ -118,9 +119,10 @@ describe("createArticleEmbeds", () => {
       category: "tech",
       source: "Test",
     }];
-    
+
     const embeds = createArticleEmbeds(articles);
-    expect(embeds[0].description).toBeUndefined();
+    // Empty summary should still have the detailed summary link
+    expect(embeds[0].description).toContain("[View Detailed Summary]");
   });
 });
 
@@ -162,11 +164,13 @@ describe("createDigestEmbed", () => {
       category: "tech",
       source: "Test",
     }];
-    
+
     const embeds = createDigestEmbed(articles);
     const field = embeds[0].fields?.[0];
-    
-    // Should be truncated to ~60 chars + "..."
-    expect(field?.value.length).toBeLessThan(100);
+
+    // Summary text should be truncated to ~50 chars + "..." (plus detail link)
+    // Format: • [truncated_text](url) [[+]](detail_url)
+    expect(field?.value).toContain("...");
+    expect(field?.value).toContain("[[+]]");
   });
 });
