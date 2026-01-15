@@ -9,6 +9,7 @@ AI-powered personalized tech news aggregator with adaptive learning. Collects ar
 - 📝 **Auto-Summarization**: Each article gets a brief summary
 - 💬 **Discord Notifications**: Daily digest sent to your channel
 - 🗄️ **Deduplication**: SQLite tracks seen articles
+- 🔍 **Natural Language Web Search**: Search the web with natural language via Perplexity API
 
 ## Setup
 
@@ -32,7 +33,10 @@ bun run start
 | Variable | Description |
 |----------|-------------|
 | `GROQ_API_KEY` | Groq API key (free at https://console.groq.com) |
+| `PERPLEXITY_API_KEY` | Perplexity API key for web search (optional, at https://www.perplexity.ai/settings/api) |
 | `DISCORD_WEBHOOK` | Discord webhook URL |
+| `DISCORD_BOT_TOKEN` | Discord bot token (for slash commands) |
+| `DISCORD_CHANNEL_ID` | Discord channel ID |
 | `MAX_ARTICLES` | Max articles per digest (default: 20) |
 | `DRY_RUN` | Skip Discord notification if true |
 
@@ -68,6 +72,20 @@ crontab -e
 6. Notify    → Send to Discord webhook
 7. Save      → Store in SQLite for dedup
 ```
+
+## Web Search
+
+Natural language web search powered by Perplexity API. Available via:
+
+1. **Discord Bot**: `/search <query>` - Search from Discord
+2. **Web UI**: `/search` page - Search from the web interface
+
+Example queries:
+- "React 19の新機能は何ですか？"
+- "Rustでasync/awaitを使う方法"
+- "Claude APIとGPT-4の比較"
+
+If `PERPLEXITY_API_KEY` is not set, falls back to Groq API (knowledge cutoff applies).
 
 ## Ideas / TODO
 

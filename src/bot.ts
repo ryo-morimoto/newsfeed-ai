@@ -13,6 +13,7 @@ import { runNewsfeed, markArticlesNotified } from "./main";
 import { sendEmbedsViaBot } from "./discord-embed";
 import { runFeedbackAgent, type FeedbackResult } from "./agent-feedback";
 import { watchTask, checkPendingTasks, cleanup, type TaskCompletionInfo } from "./task-monitor";
+import { smartSearch } from "./web-search";
 
 // Initialize database
 ensureDb();
@@ -54,6 +55,15 @@ const commands = [
       option
         .setName("request")
         .setDescription("Your feedback or feature request")
+        .setRequired(true)
+    ),
+  new SlashCommandBuilder()
+    .setName("search")
+    .setDescription("Search the web with natural language")
+    .addStringOption((option) =>
+      option
+        .setName("query")
+        .setDescription("Your search query (e.g., 'latest React 19 features')")
         .setRequired(true)
     ),
 ];
@@ -217,6 +227,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
   } else if (commandName === "feedback") {
     const feedbackText = interaction.options.getString("request", true);
     await handleFeedbackInteraction(interaction, feedbackText);
+  } else if (commandName === "search") {
+    const query = interaction.options.getString("query", true);
+    await handleSearchInteraction(interaction, query);
   }
 });
 
@@ -256,6 +269,45 @@ async function handleFeedbackInteraction(
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     await interaction.editReply(`Agent failed: ${errorMsg}`);
+  }
+}
+
+/**
+ * Handle the search slash command - performs web search with natural language
+ */
+async function handleSearchInteraction(
+  interaction: ChatInputCommandInteraction,
+  query: string
+) {
+  // Defer reply since search takes time
+  await interaction.deferReply();
+
+  try {
+    console.log(`🔍 Web search by ${interaction.user.tag}: ${query}`);
+    const result = await smartSearch(query);
+
+    // Format response for Discord
+    let response = `🔍 **${query}**\n\n${result.summary}`;
+
+    // Add citations if available
+    if (result.citations.length > 0) {
+      response += "\n\n📚 **Sources:**";
+      for (const url of result.citations.slice(0, 5)) {
+        // Wrap URLs in <> to prevent embeds
+        response += `\n• <${url}>`;
+      }
+    }
+
+    // Discord has 2000 char limit
+    if (response.length > 2000) {
+      response = response.slice(0, 1997) + "...";
+    }
+
+    await interaction.editReply(response);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`Search failed: ${errorMsg}`);
+    await interaction.editReply(`❌ Search failed: ${errorMsg}`);
   }
 }
 
