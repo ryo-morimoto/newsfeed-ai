@@ -202,6 +202,9 @@ JSON形式で出力:
         messages: [{ role: "user", content: prompt }],
         temperature: 0.3,
         max_tokens: 1000,
+        response_format: {
+          type: "json_object",
+        },
       }),
     });
 
@@ -216,16 +219,12 @@ JSON形式で出力:
 
     const content = data.choices[0]?.message?.content || "";
 
-    // Extract JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        const parsed = JSON.parse(jsonMatch[0]) as PrContent;
-        console.log(`[task-monitor] Generated PR title: ${parsed.title}`);
-        return parsed;
-      } catch (parseError) {
-        console.log(`[task-monitor] JSON parse error, using fallback`);
-      }
+    try {
+      const parsed = JSON.parse(content) as PrContent;
+      console.log(`[task-monitor] Generated PR title: ${parsed.title}`);
+      return parsed;
+    } catch (parseError) {
+      console.log(`[task-monitor] JSON parse error, using fallback`);
     }
 
     return { title: originalRequest.slice(0, 72), description: originalRequest };
