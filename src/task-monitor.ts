@@ -12,6 +12,7 @@ import {
 } from "./db";
 
 const VK_PORT_FILE = "/tmp/vibe-kanban/vibe-kanban.port";
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 interface TaskStatus {
   id: string;
@@ -100,10 +101,144 @@ async function getPrUrlForBranch(workdir: string, branch: string): Promise<strin
   }
 }
 
+interface PrContent {
+  title: string;
+  description: string;
+}
+
+/**
+ * Get git diff for a branch compared to main
+ */
+async function getGitDiff(workdir: string, branch: string): Promise<string> {
+  try {
+    const proc = Bun.spawn(["git", "diff", "main...HEAD", "--stat"], {
+      cwd: workdir,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const statOutput = await new Response(proc.stdout).text();
+
+    // Also get a limited diff content
+    const diffProc = Bun.spawn(["git", "diff", "main...HEAD", "--no-color"], {
+      cwd: workdir,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const diffOutput = await new Response(diffProc.stdout).text();
+
+    // Truncate diff to avoid token limits
+    const truncatedDiff = diffOutput.length > 8000 ? diffOutput.slice(0, 8000) + "\n... (truncated)" : diffOutput;
+
+    return `Files changed:\n${statOutput}\n\nDiff:\n${truncatedDiff}`;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Get commit messages for a branch since main
+ */
+async function getCommitMessages(workdir: string): Promise<string> {
+  try {
+    const proc = Bun.spawn(["git", "log", "main..HEAD", "--oneline"], {
+      cwd: workdir,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const output = await new Response(proc.stdout).text();
+    return output.trim();
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Generate PR title and description using LLM
+ */
+async function generatePrContent(
+  originalRequest: string,
+  diff: string,
+  commits: string
+): Promise<PrContent> {
+  // Fallback if no API key
+  if (!GROQ_API_KEY) {
+    console.log("[task-monitor] No GROQ_API_KEY, using default PR content");
+    return {
+      title: originalRequest.slice(0, 72),
+      description: originalRequest,
+    };
+  }
+
+  const prompt = `あなたはPRレビュアーです。以下の情報からPRのtitleとdescriptionを生成してください。
+
+## 元のリクエスト
+${originalRequest}
+
+## コミット一覧
+${commits || "(なし)"}
+
+## 変更差分
+${diff || "(差分なし)"}
+
+## 出力ルール
+- titleは英語で50文字以内、何を変更したか簡潔に
+- descriptionはMarkdownで以下の構成:
+  - ## Summary: 変更内容を箇条書き3-5点
+  - ## Changes: 主要な変更ファイルとその内容
+  - ## Testing: どうテストするか（該当する場合）
+
+JSON形式で出力:
+{"title": "...", "description": "..."}`;
+
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        max_tokens: 1000,
+      }),
+    });
+
+    if (!res.ok) {
+      console.log(`[task-monitor] Groq API error: ${res.status}`);
+      return { title: originalRequest.slice(0, 72), description: originalRequest };
+    }
+
+    const data = (await res.json()) as {
+      choices: Array<{ message: { content: string } }>;
+    };
+
+    const content = data.choices[0]?.message?.content || "";
+
+    // Extract JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]) as PrContent;
+      console.log(`[task-monitor] Generated PR title: ${parsed.title}`);
+      return parsed;
+    }
+
+    return { title: originalRequest.slice(0, 72), description: originalRequest };
+  } catch (error) {
+    console.error("[task-monitor] LLM generation failed:", error);
+    return { title: originalRequest.slice(0, 72), description: originalRequest };
+  }
+}
+
 /**
  * Create a PR via vibe-kanban API
  */
-async function createPrViaApi(attemptId: string, title: string): Promise<string | undefined> {
+async function createPrViaApi(
+  attemptId: string,
+  title: string,
+  description: string
+): Promise<string | undefined> {
   const port = await getVibeKanbanPort();
   try {
     // First, get repo_id from task-attempts endpoint
@@ -123,7 +258,7 @@ async function createPrViaApi(attemptId: string, title: string): Promise<string 
     const response = await fetch(`http://localhost:${port}/api/task-attempts/${attemptId}/pr`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, repo_id: repoId }),
+      body: JSON.stringify({ title, description, repo_id: repoId }),
     });
 
     if (!response.ok) {
@@ -181,12 +316,18 @@ export async function checkPendingTasks(): Promise<TaskCompletionInfo[]> {
 
       let prUrl: string | undefined;
       if (latestAttempt) {
-        // First, try to create PR via vibe-kanban API
-        prUrl = await createPrViaApi(latestAttempt.id, task.title);
+        const workdir = `${latestAttempt.container_ref}/${latestAttempt.agent_working_dir}`;
+
+        // Get diff and commits for LLM-generated PR content
+        const diff = await getGitDiff(workdir, latestAttempt.branch);
+        const commits = await getCommitMessages(workdir);
+        const prContent = await generatePrContent(task.title, diff, commits);
+
+        // Try to create PR via vibe-kanban API with LLM-generated content
+        prUrl = await createPrViaApi(latestAttempt.id, prContent.title, prContent.description);
 
         // If API fails, check if PR already exists via gh CLI
         if (!prUrl) {
-          const workdir = `${latestAttempt.container_ref}/${latestAttempt.agent_working_dir}`;
           prUrl = await getPrUrlForBranch(workdir, latestAttempt.branch);
         }
       }
