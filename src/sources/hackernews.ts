@@ -2,6 +2,7 @@ export interface HNItem {
   title: string;
   url: string;
   score: number;
+  comments: number;
   published?: Date;
 }
 
@@ -10,6 +11,7 @@ interface HNStory {
   url?: string;
   score?: number;
   time?: number;
+  descendants?: number;  // comment count
 }
 
 const HN_API = "https://hacker-news.firebaseio.com/v0";
@@ -34,6 +36,7 @@ export async function fetchHackerNews(limit: number = 30): Promise<HNItem[]> {
         title: item.title || "No title",
         url: item.url,
         score: item.score || 0,
+        comments: item.descendants || 0,
         published: item.time ? new Date(item.time * 1000) : undefined,
       }));
   } catch (error) {
