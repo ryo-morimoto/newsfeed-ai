@@ -21,6 +21,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.7",
     "discord.js": "^14.25.1",
     "rss-parser": "^3.13.0"
   }

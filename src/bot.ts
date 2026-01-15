@@ -1,7 +1,8 @@
-import { Client, GatewayIntentBits, Events, TextChannel } from "discord.js";
+import { Client, GatewayIntentBits, Events, TextChannel, Message } from "discord.js";
 import { ensureDb } from "./db";
 import { runNewsfeed, markArticlesNotified } from "./main";
 import { sendEmbedsViaBot } from "./discord-embed";
+import { runFeedbackAgent, type FeedbackResult } from "./agent-feedback";
 
 // Initialize database
 ensureDb();
@@ -105,11 +106,49 @@ client.on(Events.MessageCreate, async (message) => {
       // Manual trigger
       await message.reply("🚀 Running newsfeed now...");
       await runScheduledNewsfeed();
+    } else if (command === "feedback") {
+      // Feedback-driven development
+      const feedbackText = args.slice(1).join(" ");
+      if (!feedbackText) {
+        await message.reply("❌ Usage: `@bot feedback <your request>`\nExample: `@bot feedback Add a new RSS source for Hacker News`");
+        return;
+      }
+      await handleFeedbackCommand(message, feedbackText);
     } else {
-      await message.reply("👋 Commands: `ping`, `status`, `run`");
+      await message.reply("👋 Commands: `ping`, `status`, `run`, `feedback <request>`");
     }
   }
 });
+
+/**
+ * Handle the feedback command - runs Claude Agent to implement a request
+ */
+async function handleFeedbackCommand(message: Message, feedbackText: string) {
+  const requestedBy = message.author.tag;
+
+  await message.reply(`🤖 Starting AI agent to work on your request...\n> ${feedbackText}\n\nThis may take a few minutes.`);
+
+  try {
+    const result: FeedbackResult = await runFeedbackAgent(feedbackText, requestedBy);
+
+    if (result.success && result.prUrl) {
+      await message.reply(
+        `✅ **Done!** Created PR for your request:\n${result.prUrl}\n\n` +
+        `Branch: \`${result.branchName}\``
+      );
+    } else {
+      await message.reply(
+        `⚠️ Agent completed but couldn't create PR.\n` +
+        `Error: ${result.error || "Unknown error"}\n` +
+        `Branch: \`${result.branchName}\`\n\n` +
+        `Check the logs for more details.`
+      );
+    }
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    await message.reply(`❌ Agent failed: ${errorMsg}`);
+  }
+}
 
 const token = process.env.DISCORD_BOT_TOKEN;
 if (!token) {
