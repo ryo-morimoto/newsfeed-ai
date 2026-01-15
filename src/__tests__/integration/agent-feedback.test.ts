@@ -1,24 +1,20 @@
-import { test, expect, describe, mock, beforeEach, afterEach } from "bun:test";
+import { test, expect, describe, mock, beforeEach } from "bun:test";
 
 /**
- * Integration tests for agent-feedback module.
+ * Integration tests for agent-feedback module with vibe-kanban MCP.
  *
  * Note: These tests mock the Claude Agent SDK since actual agent execution
- * requires API keys and takes significant time. The tests verify:
+ * requires API keys, vibe-kanban server, and takes significant time.
+ * The tests verify:
  * 1. The module correctly processes SDK responses
- * 2. PR URLs are extracted from various message formats
+ * 2. Task IDs and attempt IDs are extracted from responses
  * 3. Error handling works correctly
  */
 
 // We need to mock the SDK before importing the module
 const mockQuery = mock(() => {
-  // Return an async generator
   return (async function* () {
-    yield {
-      type: "system",
-      subtype: "init",
-      session_id: "test-session",
-    };
+    yield { type: "system", subtype: "init", session_id: "test-session" };
   })();
 });
 
@@ -28,26 +24,35 @@ mock.module("@anthropic-ai/claude-agent-sdk", () => ({
 }));
 
 // Import after mocking
-import { runFeedbackAgent, generateSlug } from "../../agent-feedback";
+import { runFeedbackAgent } from "../../agent-feedback";
 
-describe("Agent Feedback Integration", () => {
+describe("Agent Feedback Integration (vibe-kanban MCP)", () => {
   beforeEach(() => {
     mockQuery.mockClear();
   });
 
   describe("runFeedbackAgent with mocked SDK", () => {
-    test("returns success when PR URL is found in result message", async () => {
+    test("returns success when task and attempt IDs are found", async () => {
       mockQuery.mockImplementation(() => {
         return (async function* () {
           yield {
-            type: "system",
-            subtype: "init",
+            type: "assistant",
+            content: [
+              {
+                type: "text",
+                text: 'Task created with task_id: "abc-123-def"',
+              },
+            ],
             session_id: "test-session",
           };
           yield {
-            type: "result",
-            subtype: "success",
-            result: "Created PR: https://github.com/owner/repo/pull/123",
+            type: "assistant",
+            content: [
+              {
+                type: "text",
+                text: 'Attempt started with attempt_id: "xyz-789"',
+              },
+            ],
             session_id: "test-session",
           };
         })();
@@ -56,12 +61,11 @@ describe("Agent Feedback Integration", () => {
       const result = await runFeedbackAgent("Add test feature", "TestUser");
 
       expect(result.success).toBe(true);
-      expect(result.prUrl).toBe("https://github.com/owner/repo/pull/123");
-      expect(result.branchName).toMatch(/^feedback\/add-test-feature-/);
-      expect(result.logs).toContain('PR created: https://github.com/owner/repo/pull/123');
+      expect(result.taskId).toBe("abc-123-def");
+      expect(result.attemptId).toBe("xyz-789");
     });
 
-    test("returns success when PR URL is found in assistant message", async () => {
+    test("returns success with PR URL when available", async () => {
       mockQuery.mockImplementation(() => {
         return (async function* () {
           yield {
@@ -69,15 +73,9 @@ describe("Agent Feedback Integration", () => {
             content: [
               {
                 type: "text",
-                text: "I created the PR at https://github.com/test/repo/pull/456",
+                text: 'task_id: "task-1" attempt_id: "attempt-1" PR: https://github.com/owner/repo/pull/123',
               },
             ],
-            session_id: "test-session",
-          };
-          yield {
-            type: "result",
-            subtype: "success",
-            result: "Done!",
             session_id: "test-session",
           };
         })();
@@ -86,16 +84,20 @@ describe("Agent Feedback Integration", () => {
       const result = await runFeedbackAgent("Fix bug", "TestUser");
 
       expect(result.success).toBe(true);
-      expect(result.prUrl).toBe("https://github.com/test/repo/pull/456");
+      expect(result.prUrl).toBe("https://github.com/owner/repo/pull/123");
     });
 
-    test("returns failure when no PR URL found", async () => {
+    test("returns partial failure when only task created", async () => {
       mockQuery.mockImplementation(() => {
         return (async function* () {
           yield {
-            type: "result",
-            subtype: "success",
-            result: "Changes made but no PR created",
+            type: "assistant",
+            content: [
+              {
+                type: "text",
+                text: 'Created task_id: abc-123 but start_task_attempt failed',
+              },
+            ],
             session_id: "test-session",
           };
         })();
@@ -104,31 +106,50 @@ describe("Agent Feedback Integration", () => {
       const result = await runFeedbackAgent("Update docs", "TestUser");
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("No PR URL found in agent output");
-      expect(result.prUrl).toBeUndefined();
+      expect(result.taskId).toBe("abc-123");
+      expect(result.attemptId).toBeUndefined();
+      expect(result.error).toContain("failed to start attempt");
     });
 
-    test("handles SDK errors gracefully", async () => {
+    test("returns failure when no task created", async () => {
       mockQuery.mockImplementation(() => {
         return (async function* () {
-          throw new Error("API key not configured");
+          yield {
+            type: "result",
+            subtype: "success",
+            result: "Could not connect to vibe-kanban",
+            session_id: "test-session",
+          };
         })();
       });
 
       const result = await runFeedbackAgent("Add feature", "TestUser");
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("API key not configured");
-      expect(result.logs).toContain("Agent failed: API key not configured");
+      expect(result.taskId).toBeUndefined();
+      expect(result.error).toContain("Failed to create task");
+    });
+
+    test("handles SDK errors gracefully", async () => {
+      mockQuery.mockImplementation(() => {
+        return (async function* () {
+          throw new Error("MCP server not available");
+        })();
+      });
+
+      const result = await runFeedbackAgent("Add feature", "TestUser");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("MCP server not available");
+      expect(result.logs).toContain("Agent failed: MCP server not available");
     });
 
     test("logs contain expected information", async () => {
       mockQuery.mockImplementation(() => {
         return (async function* () {
           yield {
-            type: "result",
-            subtype: "success",
-            result: "https://github.com/a/b/pull/1",
+            type: "assistant",
+            content: [{ type: "text", text: "task_id: t1 attempt_id: a1" }],
             session_id: "test-session",
           };
         })();
@@ -137,35 +158,20 @@ describe("Agent Feedback Integration", () => {
       const result = await runFeedbackAgent("Test logging", "User123");
 
       expect(result.logs).toContainEqual(
-        expect.stringContaining('Starting agent for feedback: "Test logging"')
+        expect.stringContaining('Starting feedback agent for: "Test logging"')
       );
       expect(result.logs).toContainEqual(
         expect.stringContaining("Requested by: User123")
       );
-      expect(result.logs).toContainEqual(
-        expect.stringContaining("Branch: feedback/test-logging-")
-      );
     });
 
-    test("extracts PR URL from complex message content", async () => {
+    test("extracts IDs from result message", async () => {
       mockQuery.mockImplementation(() => {
         return (async function* () {
           yield {
-            type: "assistant",
-            content: [
-              { type: "text", text: "First I analyzed the code..." },
-              { type: "text", text: "Then I made changes..." },
-              {
-                type: "text",
-                text: "Finally, here's the PR: https://github.com/org/project/pull/999 - please review!",
-              },
-            ],
-            session_id: "test-session",
-          };
-          yield {
             type: "result",
             subtype: "success",
-            result: "All done",
+            result: 'task_id: "550e8400-e29b-41d4-a716-446655440000" attempt_id: "660f9500-f30c-52e5-b827-557766551111"',
             session_id: "test-session",
           };
         })();
@@ -174,41 +180,13 @@ describe("Agent Feedback Integration", () => {
       const result = await runFeedbackAgent("Complex task", "TestUser");
 
       expect(result.success).toBe(true);
-      expect(result.prUrl).toBe("https://github.com/org/project/pull/999");
-    });
-  });
-
-  describe("generateSlug integration", () => {
-    test("generated branch names are valid git branch names", () => {
-      const testCases = [
-        "Add new feature",
-        "Fix bug in login",
-        "Update dependencies!!!",
-        "日本語のフィードバック",
-        "Mixed 日本語 and English",
-        "Special chars @#$%^&*()",
-        "",
-        "   spaces   everywhere   ",
-      ];
-
-      for (const feedback of testCases) {
-        const slug = generateSlug(feedback);
-
-        // Valid git branch name rules:
-        // - No spaces
-        // - Can contain slashes (for namespacing)
-        // - No consecutive dots
-        // - Cannot start with dot or dash
-        expect(slug).not.toContain(" ");
-        expect(slug).toMatch(/^feedback\//);
-        expect(slug).not.toMatch(/\.\./);
-        expect(slug).not.toMatch(/^-/);
-      }
+      expect(result.taskId).toBe("550e8400-e29b-41d4-a716-446655440000");
+      expect(result.attemptId).toBe("660f9500-f30c-52e5-b827-557766551111");
     });
   });
 
   describe("prompt construction", () => {
-    test("feedback is included in agent execution", async () => {
+    test("feedback and instructions are included in prompt", async () => {
       let capturedPrompt = "";
 
       mockQuery.mockImplementation((params: { prompt: string }) => {
@@ -226,7 +204,50 @@ describe("Agent Feedback Integration", () => {
       await runFeedbackAgent("Add dark mode support", "TestUser");
 
       expect(capturedPrompt).toContain("Add dark mode support");
-      expect(capturedPrompt).toContain("feedback/add-dark-mode-");
+      expect(capturedPrompt).toContain("list_projects");
+      expect(capturedPrompt).toContain("create_task");
+      expect(capturedPrompt).toContain("start_task_attempt");
+      expect(capturedPrompt).toContain("claude-code");
+    });
+
+    test("project ID is included when provided", async () => {
+      let capturedPrompt = "";
+
+      mockQuery.mockImplementation((params: { prompt: string }) => {
+        capturedPrompt = params.prompt;
+        return (async function* () {
+          yield {
+            type: "result",
+            subtype: "success",
+            result: "Done",
+            session_id: "test-session",
+          };
+        })();
+      });
+
+      await runFeedbackAgent("Add feature", "TestUser", "project-123");
+
+      expect(capturedPrompt).toContain("project_id: project-123");
+    });
+  });
+
+  describe("MCP tools configuration", () => {
+    test("uses correct MCP tools", async () => {
+      let capturedOptions: Record<string, unknown> = {};
+
+      mockQuery.mockImplementation((params: { options?: Record<string, unknown> }) => {
+        capturedOptions = params.options || {};
+        return (async function* () {
+          yield { type: "result", result: "task_id: t1 attempt_id: a1" };
+        })();
+      });
+
+      await runFeedbackAgent("Test", "User");
+
+      const allowedTools = capturedOptions.allowedTools as string[];
+      expect(allowedTools).toContain("mcp__vibe-kanban__list_projects");
+      expect(allowedTools).toContain("mcp__vibe-kanban__create_task");
+      expect(allowedTools).toContain("mcp__vibe-kanban__start_task_attempt");
     });
   });
 });

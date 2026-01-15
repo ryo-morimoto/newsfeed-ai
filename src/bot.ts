@@ -121,27 +121,39 @@ client.on(Events.MessageCreate, async (message) => {
 });
 
 /**
- * Handle the feedback command - runs Claude Agent to implement a request
+ * Handle the feedback command - creates task and starts execution via vibe-kanban
  */
 async function handleFeedbackCommand(message: Message, feedbackText: string) {
   const requestedBy = message.author.tag;
 
-  await message.reply(`🤖 Starting AI agent to work on your request...\n> ${feedbackText}\n\nThis may take a few minutes.`);
+  await message.reply(`🤖 Creating task in vibe-kanban...\n> ${feedbackText}`);
 
   try {
     const result: FeedbackResult = await runFeedbackAgent(feedbackText, requestedBy);
 
-    if (result.success && result.prUrl) {
+    if (result.success && result.taskId && result.attemptId) {
+      let response = `✅ **Task started!**\n` +
+        `Task ID: \`${result.taskId}\`\n` +
+        `Attempt ID: \`${result.attemptId}\`\n\n` +
+        `vibe-kanban is now running claude-code on this task.`;
+
+      if (result.prUrl) {
+        response += `\n\nPR: ${result.prUrl}`;
+      }
+
+      await message.reply(response);
+    } else if (result.taskId) {
       await message.reply(
-        `✅ **Done!** Created PR for your request:\n${result.prUrl}\n\n` +
-        `Branch: \`${result.branchName}\``
+        `⚠️ Task created but execution not started.\n` +
+        `Task ID: \`${result.taskId}\`\n` +
+        `Error: ${result.error || "Unknown error"}\n\n` +
+        `Check vibe-kanban UI for details.`
       );
     } else {
       await message.reply(
-        `⚠️ Agent completed but couldn't create PR.\n` +
-        `Error: ${result.error || "Unknown error"}\n` +
-        `Branch: \`${result.branchName}\`\n\n` +
-        `Check the logs for more details.`
+        `❌ Failed to create task.\n` +
+        `Error: ${result.error || "Unknown error"}\n\n` +
+        `Make sure vibe-kanban is running.`
       );
     }
   } catch (error) {
