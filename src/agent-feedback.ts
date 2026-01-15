@@ -8,7 +8,7 @@ export interface FeedbackResult {
   logs: string[];
 }
 
-function generateSlug(feedback: string): string {
+export function generateSlug(feedback: string): string {
   const words = feedback
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, "")
