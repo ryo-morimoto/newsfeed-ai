@@ -168,11 +168,18 @@ describe("summarizeArticles", () => {
     expect(result[0].summary).toBe("要約テスト");
   });
 
-  test("uses original title for articles with insufficient content", async () => {
-    // This fetch should NOT be called for title-only articles
-    const fetchMock = mock(async () => {
-      throw new Error("API should not be called for title-only articles");
-    });
+  test("generates Japanese title for articles with insufficient content", async () => {
+    // API should be called to translate title to Japanese
+    const fetchMock = mock(async () => ({
+      ok: true,
+      json: async () => ({
+        choices: [{
+          message: {
+            content: '[{"index": 0, "summary": "短いコンテンツの記事"}]'
+          }
+        }]
+      })
+    }));
     globalThis.fetch = fetchMock as typeof fetch;
 
     const titleOnlyArticles: ArticleToSummarize[] = [{
@@ -185,14 +192,22 @@ describe("summarizeArticles", () => {
 
     const result = await summarizeArticles(titleOnlyArticles, "test-api-key");
 
-    expect(result[0].summary).toBe("Short Content Article"); // Uses original title
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result[0].summary).toBe("短いコンテンツの記事"); // Japanese translation
+    expect(fetchMock).toHaveBeenCalled();
   });
 
-  test("adds HN metrics to title for high-score articles", async () => {
-    const fetchMock = mock(async () => {
-      throw new Error("API should not be called");
-    });
+  test("generates Japanese title for HN articles", async () => {
+    // API should be called to translate title to Japanese
+    const fetchMock = mock(async () => ({
+      ok: true,
+      json: async () => ({
+        choices: [{
+          message: {
+            content: '[{"index": 0, "summary": "HN人気記事"}]'
+          }
+        }]
+      })
+    }));
     globalThis.fetch = fetchMock as typeof fetch;
 
     const hnArticle: ArticleToSummarize[] = [{
@@ -205,13 +220,22 @@ describe("summarizeArticles", () => {
 
     const result = await summarizeArticles(hnArticle, "test-api-key");
 
-    expect(result[0].summary).toBe("HN Popular Article (500pt, 150comments)");
+    expect(result[0].summary).toBe("HN人気記事"); // Japanese translation
+    expect(fetchMock).toHaveBeenCalled();
   });
 
-  test("uses plain title for low-score HN articles", async () => {
-    const fetchMock = mock(async () => {
-      throw new Error("API should not be called");
-    });
+  test("generates Japanese title for low-score HN articles", async () => {
+    // API should be called to translate title to Japanese
+    const fetchMock = mock(async () => ({
+      ok: true,
+      json: async () => ({
+        choices: [{
+          message: {
+            content: '[{"index": 0, "summary": "HN低スコア記事"}]'
+          }
+        }]
+      })
+    }));
     globalThis.fetch = fetchMock as typeof fetch;
 
     const hnArticle: ArticleToSummarize[] = [{
@@ -224,7 +248,8 @@ describe("summarizeArticles", () => {
 
     const result = await summarizeArticles(hnArticle, "test-api-key");
 
-    expect(result[0].summary).toBe("HN Low Score Article"); // No metrics appended
+    expect(result[0].summary).toBe("HN低スコア記事"); // Japanese translation
+    expect(fetchMock).toHaveBeenCalled();
   });
 
   test("replaces low-quality summary with original title", async () => {

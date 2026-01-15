@@ -84,6 +84,15 @@ export async function summarizeArticles(
   const withContent = toSummarize.filter(a => hasSubstantialContent(a));
   const titleOnly = toSummarize.filter(a => !hasSubstantialContent(a));
 
+  console.log(`  Articles to summarize: ${toSummarize.length} total, ${withContent.length} with content, ${titleOnly.length} title-only`);
+  if (titleOnly.length > 0) {
+    console.log(`  Title-only sources: ${[...new Set(titleOnly.map(a => a.source))].join(", ")}`);
+    // Log content lengths for debugging
+    for (const a of titleOnly.slice(0, 3)) {
+      console.log(`    - ${a.source}: "${a.content?.slice(0, 30) || "(empty)"}" (${a.content?.length || 0} chars)`);
+    }
+  }
+
   // For title-only articles, use original title + supplementary info if available
   const titleOnlySummaries = new Map<string, string>();
   for (const article of titleOnly) {
@@ -106,15 +115,29 @@ export async function summarizeArticles(
     titleOnlySummaries.set(article.url, summary);
   }
 
-  // If no articles with content, return all with titles
-  if (withContent.length === 0) {
-    return articles.map((a) => ({
-      ...a,
-      summary: a.category === "tech-jp" ? "" : (titleOnlySummaries.get(a.url) || a.title),
-    }));
+  // Decide which articles to process - use all if no substantial content available
+  const articlesToProcess = withContent.length > 0 ? withContent : toSummarize;
+  const isUsingTitlesOnly = withContent.length === 0;
+
+  if (isUsingTitlesOnly) {
+    console.log("  No articles with substantial content, generating Japanese titles from English...");
   }
 
-  const prompt = `あなたはテック記事の要約者です。各記事について、読者が「この記事を読むべきか」判断できる要約を日本語で生成してください。
+  const prompt = isUsingTitlesOnly
+    ? `英語のテック記事タイトルを日本語に翻訳してください。
+
+## ルール
+- 自然な日本語に翻訳
+- 技術用語はそのままカタカナまたは英語で残す（例: React, AI, LLM, API）
+- 固有名詞はそのまま残す（例: OpenAI, Google, Laravel）
+- 最大100文字
+
+Articles:
+${articlesToProcess.map((a, i) => `[${i}] ${a.title}`).join("\n")}
+
+JSON配列のみで回答:
+[{"index": 0, "summary": "日本語タイトル"}, ...]`
+    : `あなたはテック記事の要約者です。各記事について、読者が「この記事を読むべきか」判断できる要約を日本語で生成してください。
 
 ## 要約のルール
 - 1文、最大100文字
@@ -139,7 +162,7 @@ export async function summarizeArticles(
 良い: 「Server Componentsでバンドルサイズ40%削減、既存コードとの互換性あり」（判断材料）
 
 Articles:
-${withContent.map((a, i) => `[${i}] Title: ${a.title}\nSource: ${a.source}\nContent: ${a.content?.slice(0, 800) || "(本文なし)"}`).join("\n\n")}
+${articlesToProcess.map((a, i) => `[${i}] Title: ${a.title}\nSource: ${a.source}\nContent: ${a.content?.slice(0, 800) || "(本文なし)"}`).join("\n\n")}
 
 JSON配列のみで回答（他のテキストは一切不要）:
 [{"index": 0, "summary": "日本語の要約（情報不足なら元タイトルをそのまま）"}, ...]`;
@@ -179,13 +202,14 @@ JSON配列のみで回答（他のテキストは一切不要）:
         jsonMatch[0]
       );
 
-      // Build a map of URL -> summary for articles with content
+      // Build a map of URL -> summary for processed articles
       const summaryMap = new Map<string, string>();
-      withContent.forEach((a, i) => {
+      articlesToProcess.forEach((a, i) => {
         const found = summaries.find((s) => s.index === i);
         if (found) {
           // Quality check: if summary is low quality, use original title
-          if (isLowQualitySummary(found.summary, a.title)) {
+          // Skip quality check for title-only mode (we just want Japanese translation)
+          if (!isUsingTitlesOnly && isLowQualitySummary(found.summary, a.title)) {
             summaryMap.set(a.url, a.title);
           } else {
             summaryMap.set(a.url, found.summary);
@@ -198,14 +222,17 @@ JSON配列のみで回答（他のテキストは一切不要）:
 
       // Return all articles with summaries
       // - Japanese articles get empty summary (displayed as-is)
-      // - Title-only articles use original title
-      // - Articles with content use generated summary (or title if low quality)
+      // - When using titles only mode, prefer summaryMap (Japanese translations)
+      // - Otherwise, check title-only first, then summary map
       return articles.map((a) => {
         if (a.category === "tech-jp") {
           return { ...a, summary: "" };
         }
-        // Check title-only first, then summary map
-        const summary = titleOnlySummaries.get(a.url) || summaryMap.get(a.url) || a.title;
+        // In title-only mode, prefer summaryMap (Japanese translation)
+        // Otherwise, check titleOnlySummaries first
+        const summary = isUsingTitlesOnly
+          ? (summaryMap.get(a.url) || a.title)
+          : (titleOnlySummaries.get(a.url) || summaryMap.get(a.url) || a.title);
         return { ...a, summary };
       });
     }

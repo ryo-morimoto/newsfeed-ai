@@ -75,10 +75,17 @@ export function createCategoryEmbeds(articles: NotifyArticle[]): DiscordEmbed[] 
   const dateStr = now.toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" });
   const timeStr = now.toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
 
+  // Calculate actual displayed count (max 5 per category)
+  const maxPerCategory = 5;
+  const displayedCount = Object.values(grouped).reduce(
+    (sum, items) => sum + Math.min(items.length, maxPerCategory),
+    0
+  );
+
   // Header embed
   embeds.push({
     title: `📰 Tech Digest`,
-    description: `**${dateStr} ${timeStr}** のまとめ（${articles.length}件）`,
+    description: `**${dateStr} ${timeStr}** のまとめ（${displayedCount}件）`,
     color: 0x5865f2, // Discord blurple
   });
 
@@ -88,7 +95,7 @@ export function createCategoryEmbeds(articles: NotifyArticle[]): DiscordEmbed[] 
 
     // Build description with article list
     let description = "";
-    for (const item of items.slice(0, 5)) {
+    for (const item of items.slice(0, maxPerCategory)) {
       const isJapanese = category === "tech-jp";
       const displayText = isJapanese ? item.title : (item.summary || item.title);
       const dateLabel = formatRelativeDate(item.published);
