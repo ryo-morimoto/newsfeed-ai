@@ -5,3 +5,8 @@ data/*.log
 *.db-journal
 newsfeed-ai-bot.service
 .githooks/
+
+# Web UI build artifacts
+web/dist/
+web/.output/
+web/node_modules/

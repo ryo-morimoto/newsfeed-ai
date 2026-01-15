@@ -1,6 +1,7 @@
 import { getCategoryEmoji } from "./config";
 import type { NotifyArticle } from "./notify";
 import type { TextChannel } from "discord.js";
+import { getArticleDetailUrl } from "./article-url";
 
 // Discord Embed colors by category
 const categoryColors: Record<string, number> = {
@@ -92,8 +93,10 @@ export function createCategoryEmbeds(articles: NotifyArticle[]): DiscordEmbed[] 
       const displayText = isJapanese ? item.title : (item.summary || item.title);
       const dateLabel = formatRelativeDate(item.published);
       const datePart = dateLabel ? ` • ${dateLabel}` : "";
+      const detailUrl = getArticleDetailUrl(item.url);
+      const summaryPart = detailUrl ? ` • [詳細](${detailUrl})` : "";
       description += `**[${displayText}](${item.url})**\n`;
-      description += `└ \`${item.source}\`${datePart}\n\n`;
+      description += `└ \`${item.source}\`${datePart}${summaryPart}\n\n`;
     }
 
     embeds.push({
@@ -113,11 +116,22 @@ export function createArticleEmbeds(articles: NotifyArticle[]): DiscordEmbed[] {
   return articles.map((article) => {
     const color = categoryColors[article.category] || 0x6b7280;
     const emoji = getCategoryEmoji(article.category);
+    const detailUrl = getArticleDetailUrl(article.url);
+
+    // Add detail link to description if available
+    let description: string | undefined;
+    if (article.summary && detailUrl) {
+      description = `${article.summary}\n\n[詳細要旨を見る](${detailUrl})`;
+    } else if (article.summary) {
+      description = article.summary;
+    } else if (detailUrl) {
+      description = `[詳細要旨を見る](${detailUrl})`;
+    }
 
     return {
       title: article.title.slice(0, 256), // Discord limit
       url: article.url,
-      description: article.summary || undefined,
+      description,
       color,
       footer: {
         text: `${emoji} • ${article.source}`,
@@ -152,8 +166,10 @@ export function createDigestEmbed(articles: NotifyArticle[]): DiscordEmbed[] {
     for (const item of items.slice(0, 3)) {
       const isJapanese = category === "tech-jp";
       const displayText = isJapanese ? item.title : (item.summary || item.title);
-      const shortText = displayText.length > 60 ? displayText.slice(0, 57) + "..." : displayText;
-      value += `• [${shortText}](${item.url})\n`;
+      const shortText = displayText.length > 50 ? displayText.slice(0, 47) + "..." : displayText;
+      const detailUrl = getArticleDetailUrl(item.url);
+      const detailPart = detailUrl ? ` [[+]](${detailUrl})` : "";
+      value += `• [${shortText}](${item.url})${detailPart}\n`;
     }
 
     if (items.length > 3) {

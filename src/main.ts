@@ -1,9 +1,10 @@
-import { ensureDb, isArticleSeen, saveArticle, markAsNotified } from "./db";
+import { ensureDb, isArticleSeen, saveArticle, markAsNotified, updateArticleDetailedSummary } from "./db";
 import { fetchRss } from "./sources/rss";
 import { fetchHackerNews } from "./sources/hackernews";
 import { fetchGitHubTrending } from "./sources/github-trending";
 import { filterArticles, type ArticleToFilter } from "./filter";
 import { summarizeArticles } from "./summarize";
+import { generateDetailedSummary } from "./detailed-summary";
 import { sendToDiscord, type NotifyArticle } from "./notify";
 import { createDigestEmbed, createCategoryEmbeds, sendEmbedsToDiscord, type DiscordEmbed } from "./discord-embed";
 import {
@@ -135,6 +136,33 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
   // Summarize
   console.log("\n✍️ Summarizing...");
   const summarized = await summarizeArticles(topArticles, GROQ_API_KEY);
+
+  // Generate detailed summaries for selected articles
+  console.log("\n📝 Generating detailed summaries...");
+  for (const article of summarized) {
+    try {
+      const detailed = await generateDetailedSummary(
+        {
+          title: article.title,
+          url: article.url,
+          source: article.source,
+          category: article.category,
+          summary: article.summary,
+        },
+        GROQ_API_KEY
+      );
+      // Store in DB
+      updateArticleDetailedSummary(
+        article.url,
+        detailed.detailedSummary,
+        detailed.keyPoints,
+        detailed.targetAudience
+      );
+      console.log(`  ✓ ${article.title.slice(0, 40)}...`);
+    } catch (error) {
+      console.error(`  ✗ Failed for ${article.url}:`, error);
+    }
+  }
 
   // Prepare for notification
   const toNotify: NotifyArticle[] = summarized.map((a) => ({

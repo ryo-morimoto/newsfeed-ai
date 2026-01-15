@@ -105,20 +105,43 @@ bun --hot ./index.ts
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
 
-## Discord Bot (systemd)
+## systemd サービス
 
-Discord botはsystemdサービスとして管理されている。手動で`bun run src/bot.ts`を実行しないこと（重複起動の原因になる）。
+サービスファイルは`systemd/`ディレクトリに配置されている。`__USER__`プレースホルダーはデプロイ時に自動で置換される。
+
+### 初回セットアップ
+
+デプロイスクリプトが自動的にサービスファイルをインストールする:
+
+```bash
+# デプロイ実行（サービスファイルも自動設定される）
+./scripts/deploy.sh
+```
+
+### 手動セットアップ（必要な場合のみ）
+
+```bash
+# Discord Bot
+sed 's/__USER__/exedev/g' systemd/newsfeed-ai-bot.service | sudo tee /etc/systemd/system/newsfeed-ai-bot.service
+sudo systemctl daemon-reload && sudo systemctl enable newsfeed-ai-bot && sudo systemctl start newsfeed-ai-bot
+
+# Web UI
+sed 's/__USER__/exedev/g' systemd/newsfeed-ai-web.service | sudo tee /etc/systemd/system/newsfeed-ai-web.service
+sudo systemctl daemon-reload && sudo systemctl enable newsfeed-ai-web && sudo systemctl start newsfeed-ai-web
+```
+
+### 運用コマンド
 
 ```bash
 # 状態確認
 sudo systemctl status newsfeed-ai-bot
+sudo systemctl status newsfeed-ai-web
 
-# 再起動（コード更新後）
+# 再起動
 sudo systemctl restart newsfeed-ai-bot
-
-# 停止
-sudo systemctl stop newsfeed-ai-bot
+sudo systemctl restart newsfeed-ai-web
 
 # ログ確認
 sudo journalctl -u newsfeed-ai-bot -f
+sudo journalctl -u newsfeed-ai-web -f
 ```
