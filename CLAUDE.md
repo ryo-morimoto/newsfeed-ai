@@ -104,3 +104,21 @@ bun --hot ./index.ts
 ```
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+
+## Discord Bot (systemd)
+
+Discord botはsystemdサービスとして管理されている。手動で`bun run src/bot.ts`を実行しないこと（重複起動の原因になる）。
+
+```bash
+# 状態確認
+sudo systemctl status newsfeed-ai-bot
+
+# 再起動（コード更新後）
+sudo systemctl restart newsfeed-ai-bot
+
+# 停止
+sudo systemctl stop newsfeed-ai-bot
+
+# ログ確認
+sudo journalctl -u newsfeed-ai-bot -f
+```
