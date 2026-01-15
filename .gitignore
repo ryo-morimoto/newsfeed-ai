@@ -4,3 +4,4 @@ data/*.log
 .env
 *.db-journal
 newsfeed-ai-bot.service
+.githooks/
