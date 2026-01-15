@@ -1,4 +1,8 @@
 {
+  "exclude": [
+    "**/*.test.ts",
+    "src/__tests__/**"
+  ],
   "compilerOptions": {
     // Environment setup & latest features
     "lib": ["ESNext"],
