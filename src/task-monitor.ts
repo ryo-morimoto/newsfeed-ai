@@ -232,46 +232,38 @@ JSON形式で出力:
 }
 
 /**
- * Create a PR via vibe-kanban API
+ * Create a PR using gh CLI
  */
-async function createPrViaApi(
-  attemptId: string,
+async function createPrWithGh(
+  workdir: string,
   title: string,
   description: string
 ): Promise<string | undefined> {
-  const port = await getVibeKanbanPort();
   try {
-    // First, get repo_id from task-attempts endpoint
-    const attemptsResponse = await fetch(`http://localhost:${port}/api/task-attempts?id=${attemptId}`);
-    if (!attemptsResponse.ok) {
-      console.log(`[task-monitor] Failed to fetch attempt ${attemptId}`);
-      return undefined;
-    }
-    const attemptsData = (await attemptsResponse.json()) as { success: boolean; data: Array<{ repo_id: string }> };
-    if (!attemptsData.success || !attemptsData.data[0]?.repo_id) {
-      console.log(`[task-monitor] No repo_id found for attempt ${attemptId}`);
-      return undefined;
-    }
-    const repoId = attemptsData.data[0].repo_id;
+    const proc = Bun.spawn(
+      ["gh", "pr", "create", "--title", title, "--body", description, "--base", "main"],
+      {
+        cwd: workdir,
+        stdout: "pipe",
+        stderr: "pipe",
+      }
+    );
+    const output = await new Response(proc.stdout).text();
+    const stderr = await new Response(proc.stderr).text();
 
-    // Create PR via API
-    const response = await fetch(`http://localhost:${port}/api/task-attempts/${attemptId}/pr`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description, repo_id: repoId }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`[task-monitor] PR creation failed: ${errorText}`);
-      return undefined;
+    const url = output.trim();
+    if (url.startsWith("https://")) {
+      console.log(`[task-monitor] PR created: ${url}`);
+      return url;
     }
 
-    const data = (await response.json()) as { success: boolean; data: string };
-    if (data.success && data.data) {
-      console.log(`[task-monitor] PR created: ${data.data}`);
-      return data.data;
+    // Check if PR already exists
+    if (stderr.includes("already exists")) {
+      console.log(`[task-monitor] PR already exists, fetching URL`);
+      return await getPrUrlForBranch(workdir, "HEAD");
     }
+
+    console.log(`[task-monitor] gh pr create failed: ${stderr}`);
     return undefined;
   } catch (error) {
     console.error(`[task-monitor] Error creating PR:`, error);
@@ -323,13 +315,8 @@ export async function checkPendingTasks(): Promise<TaskCompletionInfo[]> {
         const commits = await getCommitMessages(workdir);
         const prContent = await generatePrContent(task.title, diff, commits);
 
-        // Try to create PR via vibe-kanban API with LLM-generated content
-        prUrl = await createPrViaApi(latestAttempt.id, prContent.title, prContent.description);
-
-        // If API fails, check if PR already exists via gh CLI
-        if (!prUrl) {
-          prUrl = await getPrUrlForBranch(workdir, latestAttempt.branch);
-        }
+        // Create PR with gh CLI
+        prUrl = await createPrWithGh(workdir, prContent.title, prContent.description);
       }
 
       completed.push({
