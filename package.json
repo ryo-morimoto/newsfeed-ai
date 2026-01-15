@@ -15,7 +15,8 @@
     "ci": "bun run typecheck && bun run test"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "lefthook": "^2.0.15"
   },
   "peerDependencies": {
     "typescript": "^5"
