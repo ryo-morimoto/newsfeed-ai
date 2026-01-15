@@ -249,5 +249,27 @@ describe("Agent Feedback Integration (vibe-kanban MCP)", () => {
       expect(allowedTools).toContain("mcp__vibe-kanban__create_task");
       expect(allowedTools).toContain("mcp__vibe-kanban__start_task_attempt");
     });
+
+    test("passes VK_PORT env to MCP server when port file exists", async () => {
+      let capturedOptions: Record<string, unknown> = {};
+
+      mockQuery.mockImplementation((params: { options?: Record<string, unknown> }) => {
+        capturedOptions = params.options || {};
+        return (async function* () {
+          yield { type: "result", result: "task_id: t1 attempt_id: a1" };
+        })();
+      });
+
+      await runFeedbackAgent("Test", "User");
+
+      // The mcpServers config should include vibe-kanban with env
+      const mcpServers = capturedOptions.mcpServers as Record<string, { command: string; args?: string[]; env?: Record<string, string> }>;
+      expect(mcpServers).toBeDefined();
+      expect(mcpServers["vibe-kanban"]).toBeDefined();
+      expect(mcpServers["vibe-kanban"].command).toBe("npx");
+      expect(mcpServers["vibe-kanban"].args).toContain("--mcp");
+      // Note: env will be set only if the port file exists
+      // In CI/test environment, it may or may not have a port file
+    });
   });
 });

@@ -9,13 +9,36 @@ export interface FeedbackResult {
   logs: string[];
 }
 
-// vibe-kanban MCP server configuration
-const VIBE_KANBAN_MCP = {
-  "vibe-kanban": {
-    command: "npx",
-    args: ["vibe-kanban", "--mcp"],
-  },
-};
+const VK_PORT_FILE = "/tmp/vibe-kanban/vibe-kanban.port";
+
+/**
+ * Read the vibe-kanban port from the port file.
+ * Returns the port number as a string, or undefined if the file doesn't exist.
+ */
+async function readVibeKanbanPort(): Promise<string | undefined> {
+  try {
+    const portStr = (await Bun.file(VK_PORT_FILE).text()).trim();
+    return portStr || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Get vibe-kanban MCP server configuration with the correct port.
+ */
+async function getVibeKanbanMcpConfig() {
+  const port = await readVibeKanbanPort();
+
+  return {
+    "vibe-kanban": {
+      command: "npx",
+      args: ["vibe-kanban", "--mcp"],
+      // Pass the port from the port file to the MCP server process
+      env: port ? { VK_PORT: port } : undefined,
+    },
+  };
+}
 
 /**
  * Run feedback-driven development via vibe-kanban MCP.
@@ -72,7 +95,7 @@ The vibe-kanban system will handle the actual implementation in an isolated work
       options: {
         cwd: process.cwd(),
         allowedTools: ["mcp__vibe-kanban__list_projects", "mcp__vibe-kanban__create_task", "mcp__vibe-kanban__start_task_attempt", "mcp__vibe-kanban__list_tasks", "mcp__vibe-kanban__get_task"],
-        mcpServers: VIBE_KANBAN_MCP,
+        mcpServers: await getVibeKanbanMcpConfig(),
         permissionMode: "acceptEdits",
         maxTurns: 10,
       },
