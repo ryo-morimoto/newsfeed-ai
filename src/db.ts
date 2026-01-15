@@ -121,6 +121,15 @@ export function getRecentArticles(hours: number = 24): Article[] {
   `).all(hours) as Article[];
 }
 
+export function getArticlesWithDetailedSummary(limit: number = 50): Article[] {
+  return getDb().query(`
+    SELECT * FROM articles
+    WHERE detailed_summary IS NOT NULL
+    ORDER BY created_at DESC
+    LIMIT ?
+  `).all(limit) as Article[];
+}
+
 export function getArticleByUrl(url: string): Article | null {
   return getDb().query(`
     SELECT * FROM articles WHERE url = ?

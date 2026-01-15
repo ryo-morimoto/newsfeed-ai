@@ -3,7 +3,7 @@
  * DBから事前生成された詳細要旨を取得して即座に表示
  */
 
-import { ensureDb, getArticleByUrl } from "./db";
+import { ensureDb, getArticleByUrl, getArticlesWithDetailedSummary, type Article } from "./db";
 import { getCategoryEmoji } from "./config";
 import { getArticleDetailUrl } from "./article-url";
 
@@ -399,69 +399,210 @@ function generateErrorPage(error: string): string {
 </html>`;
 }
 
-function generateIndexPage(): string {
+function formatRelativeDate(dateStr?: string): string {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffHours < 1) return "たった今";
+  if (diffHours < 24) return `${diffHours}時間前`;
+  if (diffDays === 1) return "昨日";
+  if (diffDays < 7) return `${diffDays}日前`;
+  return date.toLocaleDateString("ja-JP");
+}
+
+function generateIndexPage(articles: Article[]): string {
+  const articleListHtml = articles.length > 0
+    ? articles.map(article => {
+        const color = categoryColors[article.category] || "#6b7280";
+        const emoji = getCategoryEmoji(article.category);
+        const shortSummary = article.summary
+          ? (article.summary.length > 80 ? article.summary.slice(0, 77) + "..." : article.summary)
+          : "";
+        const dateLabel = formatRelativeDate(article.created_at);
+        const encodedUrl = encodeURIComponent(article.url);
+
+        return `
+          <a href="/article?url=${encodedUrl}" class="article-card">
+            <div class="article-header">
+              <span class="category-badge" style="background: ${color}20; border-color: ${color}40; color: ${color};">
+                ${emoji} ${article.category.toUpperCase()}
+              </span>
+              <span class="date">${dateLabel}</span>
+            </div>
+            <h3 class="article-title">${escapeHtml(article.title)}</h3>
+            ${shortSummary ? `<p class="article-summary">${escapeHtml(shortSummary)}</p>` : ""}
+            <div class="article-meta">
+              <span class="source">${escapeHtml(article.source)}</span>
+            </div>
+          </a>
+        `;
+      }).join("")
+    : `<p class="no-articles">まだ記事がありません。フィード処理が実行されると記事が表示されます。</p>`;
+
   return `<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Article Summary Service</title>
+  <title>Article Summary - 詳細要旨一覧</title>
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', Roboto, sans-serif;
       background: #1a1b1e;
       color: #e4e4e7;
       min-height: 100vh;
       margin: 0;
-      padding: 40px 20px;
+      padding: 24px 20px;
     }
+
     .container {
-      max-width: 600px;
+      max-width: 800px;
       margin: 0 auto;
     }
+
+    header {
+      margin-bottom: 32px;
+    }
+
     h1 {
-      font-size: 28px;
-      margin-bottom: 16px;
+      font-size: 24px;
+      margin-bottom: 8px;
     }
-    p {
-      color: #a1a1aa;
-      margin-bottom: 24px;
-      line-height: 1.6;
+
+    .subtitle {
+      color: #71717a;
+      font-size: 14px;
     }
-    .usage {
+
+    .article-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .article-card {
+      display: block;
       background: #27272a;
       border-radius: 12px;
-      padding: 24px;
+      padding: 20px;
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.2s, transform 0.2s;
     }
-    .usage h2 {
-      font-size: 16px;
+
+    .article-card:hover {
+      background: #3f3f46;
+      transform: translateY(-2px);
+    }
+
+    .article-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 12px;
     }
-    code {
+
+    .category-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 10px;
+      border: 1px solid;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .date {
+      font-size: 12px;
+      color: #71717a;
+    }
+
+    .article-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .article-summary {
+      font-size: 14px;
+      color: #a1a1aa;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .article-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: #71717a;
+    }
+
+    .source {
       background: #18181b;
       padding: 2px 8px;
       border-radius: 4px;
-      font-size: 13px;
-      color: #60a5fa;
+    }
+
+    .no-articles {
+      text-align: center;
+      color: #71717a;
+      padding: 40px;
+    }
+
+    .stats {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: #27272a;
+      border-radius: 8px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #71717a;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Article Summary Service</h1>
-    <p>
-      テック記事・論文の詳細要旨を表示するサービスです。
-      Discordフィードのリンクからアクセスしてください。
-    </p>
-    <div class="usage">
-      <h2>使い方</h2>
-      <p>
-        <code>GET /article?url=ENCODED_ARTICLE_URL</code>
-      </p>
-      <p>
-        記事の詳細要旨はフィード処理時に事前生成されています。
-        DBに保存された要旨を即座に表示します。
-      </p>
+    <header>
+      <h1>Article Summary</h1>
+      <p class="subtitle">テック記事・論文の詳細要旨</p>
+    </header>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value">${articles.length}</div>
+        <div class="stat-label">記事数</div>
+      </div>
+    </div>
+
+    <div class="article-list">
+      ${articleListHtml}
     </div>
   </div>
 </body>
@@ -477,9 +618,10 @@ Bun.serve({
   async fetch(req) {
     const url = new URL(req.url);
 
-    // Index page
+    // Index page - show article list
     if (url.pathname === "/" || url.pathname === "") {
-      return new Response(generateIndexPage(), {
+      const articles = getArticlesWithDetailedSummary(50);
+      return new Response(generateIndexPage(articles), {
         headers: { "Content-Type": "text/html; charset=utf-8" },
       });
     }
