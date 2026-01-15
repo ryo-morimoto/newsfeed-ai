@@ -16,27 +16,28 @@ describe("Filter → Summarize Pipeline", () => {
     globalThis.fetch = originalFetch;
   });
 
+  // Articles with substantial content (>50 chars) for proper summarization
   const testArticles: ArticleToFilter[] = [
     {
       title: "Claude 4 Released with AGI Capabilities",
       url: "https://anthropic.com/claude-4",
       source: "Anthropic Blog",
       category: "ai",
-      content: "Anthropic announces Claude 4 with breakthrough reasoning.",
+      content: "Anthropic announces Claude 4 with breakthrough reasoning capabilities that exceed human performance on complex tasks.",
     },
     {
       title: "New JavaScript Framework XYZ",
       url: "https://xyz.dev/launch",
       source: "XYZ Blog",
       category: "frontend",
-      content: "Another JavaScript framework enters the arena.",
+      content: "Another JavaScript framework enters the arena with innovative component architecture and blazing fast performance.",
     },
     {
       title: "Local Sports Team Wins Game",
       url: "https://sports.com/game",
       source: "Sports News",
       category: "tech",
-      content: "The local team won yesterday's game.",
+      content: "The local team won yesterday's game with an impressive performance by the star player who scored three goals.",
     },
   ];
 
@@ -100,10 +101,13 @@ describe("Filter → Summarize Pipeline", () => {
     expect(filtered.length).toBe(3);
     expect(filtered.every(a => a.reason === "api error")).toBe(true);
 
-    // Summarize should return all with empty summary
+    // Summarize should return all with original titles as fallback
     const summarized = await summarizeArticles(filtered, "test-key");
     expect(summarized.length).toBe(3);
-    expect(summarized.every(a => a.summary === "")).toBe(true);
+    // On API error, fallback to original titles
+    expect(summarized[0].summary).toBe("Claude 4 Released with AGI Capabilities");
+    expect(summarized[1].summary).toBe("New JavaScript Framework XYZ");
+    expect(summarized[2].summary).toBe("Local Sports Team Wins Game");
   });
 });
 
@@ -155,13 +159,13 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
       }
     }) as typeof fetch;
 
-    // Simulate source data
+    // Simulate source data with substantial content (>50 chars)
     const sourceArticles: ArticleToFilter[] = [{
       title: "Test Article",
       url: "https://test.com/article",
       source: "Test Source",
       category: "ai",
-      content: "Test content for the article.",
+      content: "This is a comprehensive test article about artificial intelligence and machine learning breakthroughs.",
     }];
 
     // Step 1: Filter
@@ -243,29 +247,30 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
       }), { status: 200 });
     }) as typeof fetch;
 
+    // Articles with substantial content (>50 chars)
     const mixedArticles: ArticleToSummarize[] = [
       {
         title: "English Tech News",
         url: "https://tech.com/en",
         source: "Tech News",
         category: "tech",
-        content: "English content",
+        content: "This is comprehensive English content about the latest technology trends and innovations in the industry.",
       },
       {
         title: "日本語のニュース",
         url: "https://tech.com/jp",
         source: "Zenn",
         category: "tech-jp",
-        content: "日本語の内容",
+        content: "日本語の内容です。この記事では最新のテクノロジートレンドについて詳しく解説しています。",
       },
     ];
 
     const summarized = await summarizeArticles(mixedArticles, "test-key");
-    
+
     // English article gets summary
     const enArticle = summarized.find(a => a.category === "tech");
     expect(enArticle?.summary).toBe("English summary");
-    
+
     // Japanese article keeps empty summary (not sent to API)
     const jpArticle = summarized.find(a => a.category === "tech-jp");
     expect(jpArticle?.summary).toBe("");

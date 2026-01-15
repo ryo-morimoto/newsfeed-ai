@@ -49,12 +49,17 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
     for (const item of hnItems) {
       if (added >= MAX_PER_SOURCE) break;
       if (!isArticleSeen(item.url)) {
+        // Include score and comments as supplementary info for title-only articles
+        const contentParts = [`HN Score: ${item.score}点`];
+        if (item.comments > 0) {
+          contentParts.push(`${item.comments}コメント`);
+        }
         allArticles.push({
           title: item.title,
           url: item.url,
           source: hnSource.name,
           category: hnSource.category,
-          content: `Score: ${item.score}`,
+          content: contentParts.join("、"),
           published: item.published,
         });
         added++;
