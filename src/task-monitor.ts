@@ -100,6 +100,50 @@ async function getPrUrlForBranch(workdir: string, branch: string): Promise<strin
   }
 }
 
+/**
+ * Create a PR via vibe-kanban API
+ */
+async function createPrViaApi(attemptId: string, title: string): Promise<string | undefined> {
+  const port = await getVibeKanbanPort();
+  try {
+    // First, get repo_id from task-attempts endpoint
+    const attemptsResponse = await fetch(`http://localhost:${port}/api/task-attempts?id=${attemptId}`);
+    if (!attemptsResponse.ok) {
+      console.log(`[task-monitor] Failed to fetch attempt ${attemptId}`);
+      return undefined;
+    }
+    const attemptsData = (await attemptsResponse.json()) as { success: boolean; data: Array<{ repo_id: string }> };
+    if (!attemptsData.success || !attemptsData.data[0]?.repo_id) {
+      console.log(`[task-monitor] No repo_id found for attempt ${attemptId}`);
+      return undefined;
+    }
+    const repoId = attemptsData.data[0].repo_id;
+
+    // Create PR via API
+    const response = await fetch(`http://localhost:${port}/api/task-attempts/${attemptId}/pr`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, repo_id: repoId }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log(`[task-monitor] PR creation failed: ${errorText}`);
+      return undefined;
+    }
+
+    const data = (await response.json()) as { success: boolean; data: string };
+    if (data.success && data.data) {
+      console.log(`[task-monitor] PR created: ${data.data}`);
+      return data.data;
+    }
+    return undefined;
+  } catch (error) {
+    console.error(`[task-monitor] Error creating PR:`, error);
+    return undefined;
+  }
+}
+
 // === Public API ===
 
 /**
@@ -137,8 +181,14 @@ export async function checkPendingTasks(): Promise<TaskCompletionInfo[]> {
 
       let prUrl: string | undefined;
       if (latestAttempt) {
-        const workdir = `${latestAttempt.container_ref}/${latestAttempt.agent_working_dir}`;
-        prUrl = await getPrUrlForBranch(workdir, latestAttempt.branch);
+        // First, try to create PR via vibe-kanban API
+        prUrl = await createPrViaApi(latestAttempt.id, task.title);
+
+        // If API fails, check if PR already exists via gh CLI
+        if (!prUrl) {
+          const workdir = `${latestAttempt.container_ref}/${latestAttempt.agent_working_dir}`;
+          prUrl = await getPrUrlForBranch(workdir, latestAttempt.branch);
+        }
       }
 
       completed.push({
