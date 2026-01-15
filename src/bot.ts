@@ -30,6 +30,12 @@ const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || "";
 // Task check interval (30 seconds)
 const TASK_CHECK_INTERVAL_MS = 30_000;
 
+// Schedule times (JST hours -> UTC hours)
+// JST 8:00 = UTC 23:00 (previous day)
+const SCHEDULE_HOURS_UTC = [23]; // 8:00 JST
+
+let lastRunHour = -1;
+
 // Define slash commands
 const commands = [
   new SlashCommandBuilder()
@@ -68,12 +74,6 @@ async function registerCommands(token: string, clientId: string) {
     console.error("❌ Failed to register slash commands:", error);
   }
 }
-
-// Schedule times (JST hours -> UTC hours)
-// JST 8:00 = UTC 23:00 (previous day)
-const SCHEDULE_HOURS_UTC = [23]; // 8:00 JST
-
-let lastRunHour = -1;
 
 /**
  * Run scheduled newsfeed and post to Discord
