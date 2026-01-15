@@ -91,9 +91,9 @@ export async function summarizeArticles(
 
     // Add HN metrics as supplementary info
     const hnMatch = article.content?.match(/^HN Score:\s*(\d+)点(、(\d+)コメント)?$/);
-    if (hnMatch) {
-      const score = parseInt(hnMatch[1]);
-      const comments = hnMatch[3] ? parseInt(hnMatch[3]) : 0;
+    if (hnMatch && hnMatch[1]) {
+      const score = parseInt(hnMatch[1], 10);
+      const comments = hnMatch[3] ? parseInt(hnMatch[3], 10) : 0;
       // Only add if score is significant (indicates community interest)
       if (score >= 100 || comments >= 50) {
         const parts = [];
