@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { join } from "path";
 
-const DB_PATH = join(import.meta.dir, "..", "data", "history.db");
+const DEFAULT_DB_PATH = join(import.meta.dir, "..", "data", "history.db");
 
 export interface Article {
   id?: number;
@@ -17,9 +17,14 @@ export interface Article {
 }
 
 let db: Database;
+let currentDbPath: string = DEFAULT_DB_PATH;
 
-export function ensureDb() {
-  db = new Database(DB_PATH);
+/**
+ * Initialize database with optional custom path (for testing)
+ */
+export function ensureDb(dbPath?: string) {
+  currentDbPath = dbPath || DEFAULT_DB_PATH;
+  db = new Database(currentDbPath);
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS articles (
@@ -84,4 +89,14 @@ export function getRecentArticles(hours: number = 24): Article[] {
     WHERE created_at > datetime('now', '-' || ? || ' hours')
     ORDER BY created_at DESC
   `).all(hours) as Article[];
+}
+
+/**
+ * Close database connection (for testing cleanup)
+ */
+export function closeDb() {
+  if (db) {
+    db.close();
+    db = undefined!;
+  }
 }
