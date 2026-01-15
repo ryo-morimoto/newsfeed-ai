@@ -1,0 +1,18 @@
+pre-commit:
+  commands:
+    typecheck:
+      run: bun run tsc --noEmit
+    test:
+      run: bun test
+
+pre-push:
+  commands:
+    typecheck:
+      run: bun run tsc --noEmit
+    test:
+      run: bun test
+
+post-merge:
+  commands:
+    deploy:
+      run: ./scripts/deploy.sh

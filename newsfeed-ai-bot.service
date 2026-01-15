@@ -5,6 +5,7 @@ After=network.target
 [Service]
 Type=simple
 User=exedev
+Environment=HOME=/home/exedev
 WorkingDirectory=/home/exedev/newsfeed-ai
 ExecStart=/home/exedev/.bun/bin/bun run src/bot.ts
 Restart=always

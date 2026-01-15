@@ -1,0 +1,16 @@
+[Unit]
+Description=Newsfeed AI Discord Bot
+After=network.target
+
+[Service]
+Type=simple
+User=__USER__
+Environment=HOME=/home/__USER__
+WorkingDirectory=/home/__USER__/newsfeed-ai
+ExecStart=/home/__USER__/.bun/bin/bun run src/bot.ts
+Restart=always
+RestartSec=10
+EnvironmentFile=/home/__USER__/newsfeed-ai/.env
+
+[Install]
+WantedBy=multi-user.target
