@@ -18,7 +18,7 @@ export interface Article {
 
 let db: Database;
 
-export function initDb() {
+export function ensureDb() {
   db = new Database(DB_PATH);
 
   db.exec(`
@@ -44,7 +44,7 @@ export function initDb() {
 }
 
 export function getDb() {
-  if (!db) initDb();
+  if (!db) ensureDb();
   return db;
 }
 

@@ -1,5 +1,6 @@
 import { getCategoryEmoji } from "./config";
 import type { NotifyArticle } from "./notify";
+import type { TextChannel } from "discord.js";
 
 // Discord Embed colors by category
 const categoryColors: Record<string, number> = {
@@ -70,8 +71,8 @@ export function createCategoryEmbeds(articles: NotifyArticle[]): DiscordEmbed[] 
 
   const embeds: DiscordEmbed[] = [];
   const now = new Date();
-  const dateStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`;
-  const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+  const dateStr = now.toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" });
+  const timeStr = now.toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
 
   // Header embed
   embeds.push({
@@ -227,5 +228,42 @@ export async function sendEmbedsToDiscord(
   }
 
   console.log(`Sent ${embeds.length} embeds to Discord`);
+  return true;
+}
+
+
+/**
+ * Send embeds via Discord.js client (Bot)
+ */
+export async function sendEmbedsViaBot(
+  channel: TextChannel,
+  embeds: DiscordEmbed[]
+): Promise<boolean> {
+  if (embeds.length === 0) {
+    console.log("No embeds to send");
+    return true;
+  }
+
+  // Discord allows max 10 embeds per message
+  const chunks: DiscordEmbed[][] = [];
+  for (let i = 0; i < embeds.length; i += 10) {
+    chunks.push(embeds.slice(i, i + 10));
+  }
+
+  for (const chunk of chunks) {
+    try {
+      await channel.send({ embeds: chunk });
+
+      // Rate limit
+      if (chunks.length > 1) {
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    } catch (error) {
+      console.error("Failed to send Discord embed via bot", error);
+      return false;
+    }
+  }
+
+  console.log(`Sent ${embeds.length} embeds via bot`);
   return true;
 }
