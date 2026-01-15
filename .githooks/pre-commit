@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+export PATH="$HOME/.bun/bin:$PATH"
+
+echo "🔍 Type checking..."
+bun x tsc --noEmit
+
+echo "🧪 Running unit tests..."
+bun test src/*.test.ts
+
+echo "✅ All checks passed!"

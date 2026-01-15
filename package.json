@@ -8,7 +8,11 @@
     "dry-run": "DRY_RUN=true bun run src/main.ts",
     "dev": "bun --watch run src/main.ts",
     "test": "bun test",
-    "test:watch": "bun test --watch"
+    "test:unit": "bun test src/*.test.ts",
+    "test:integration": "bun test src/__tests__/",
+    "test:watch": "bun test --watch",
+    "typecheck": "bun x tsc --noEmit",
+    "ci": "bun run typecheck && bun run test"
   },
   "devDependencies": {
     "@types/bun": "latest"
