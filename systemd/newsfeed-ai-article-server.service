@@ -1,15 +1,28 @@
+# Newsfeed AI Article Summary Server
+# Copy to /etc/systemd/system/ and customize paths
+#
+# Installation:
+#   1. Copy this file: sudo cp newsfeed-ai-article-server.service /etc/systemd/system/
+#   2. Edit paths to match your environment
+#   3. Enable: sudo systemctl enable newsfeed-ai-article-server
+#   4. Start: sudo systemctl start newsfeed-ai-article-server
+
 [Unit]
 Description=Newsfeed AI Article Summary Server
 After=network.target
 
 [Service]
 Type=simple
-User=exedev
-WorkingDirectory=/home/exedev/newsfeed-ai
-ExecStart=/home/exedev/.bun/bin/bun run src/article-server.ts
+# TODO: Change to your user
+User=%USER%
+# TODO: Change to your installation directory
+WorkingDirectory=%INSTALL_DIR%
+# TODO: Change to your bun path (run `which bun` to find it)
+ExecStart=%BUN_PATH% run src/article-server.ts
 Restart=always
 RestartSec=10
-EnvironmentFile=/home/exedev/newsfeed-ai/.env
+# TODO: Change to your .env file path
+EnvironmentFile=%INSTALL_DIR%/.env
 
 [Install]
 WantedBy=multi-user.target

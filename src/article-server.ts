@@ -1,24 +1,28 @@
 /**
  * 論文詳細要旨Web UIサーバー
- * 論文の詳細要旨をブラウザで確認できるサービス
+ * DBから事前生成された詳細要旨を取得して即座に表示
  */
 
-import { generateDetailedSummary, type DetailedSummaryResult } from "./detailed-summary";
+import { ensureDb, getArticleByUrl } from "./db";
 import { getCategoryEmoji } from "./config";
 import { getArticleDetailUrl } from "./article-url";
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
-const PORT = 8001;
-
-// Base URL for generating links (can be overridden by env)
-const BASE_URL = process.env.ARTICLE_SERVER_URL || `https://moon-peak.exe.xyz:${PORT}`;
-
-// Simple in-memory cache to avoid re-fetching
-const cache = new Map<string, { result: DetailedSummaryResult; cachedAt: Date }>();
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const PORT = parseInt(process.env.ARTICLE_SERVER_PORT || "8001");
 
 // Re-export for convenience
 export { getArticleDetailUrl };
+
+interface ArticleDisplay {
+  title: string;
+  url: string;
+  source: string;
+  category: string;
+  shortSummary: string;
+  detailedSummary: string;
+  keyPoints: string[];
+  targetAudience?: string;
+  createdAt: Date;
+}
 
 function escapeHtml(text: string): string {
   return text
@@ -41,32 +45,28 @@ const categoryColors: Record<string, string> = {
   gaming: "#ec4899",   // Pink
 };
 
-function generateArticlePage(result: DetailedSummaryResult, loading: boolean = false): string {
-  const color = categoryColors[result.category] || "#6b7280";
-  const emoji = getCategoryEmoji(result.category);
+function generateArticlePage(article: ArticleDisplay): string {
+  const color = categoryColors[article.category] || "#6b7280";
+  const emoji = getCategoryEmoji(article.category);
 
-  const keyPointsHtml = result.keyPoints.length > 0
+  const keyPointsHtml = article.keyPoints.length > 0
     ? `
-      <div class="key-points">
+      <div class="card">
         <h3>Key Points</h3>
-        <ul>
-          ${result.keyPoints.map(point => `<li>${escapeHtml(point)}</li>`).join("")}
+        <ul class="key-points">
+          ${article.keyPoints.map(point => `<li>${escapeHtml(point)}</li>`).join("")}
         </ul>
       </div>
     `
     : "";
 
-  const targetAudienceHtml = result.targetAudience
+  const targetAudienceHtml = article.targetAudience
     ? `
-      <div class="target-audience">
+      <div class="card">
         <h3>Target Audience</h3>
-        <p>${escapeHtml(result.targetAudience)}</p>
+        <p class="target-audience">${escapeHtml(article.targetAudience)}</p>
       </div>
     `
-    : "";
-
-  const loadingIndicator = loading
-    ? `<div class="loading"><div class="spinner"></div><p>詳細要旨を生成中...</p></div>`
     : "";
 
   return `<!DOCTYPE html>
@@ -74,8 +74,8 @@ function generateArticlePage(result: DetailedSummaryResult, loading: boolean = f
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(result.title)} - 詳細要旨</title>
-  <meta name="description" content="${escapeHtml(result.shortSummary)}">
+  <title>${escapeHtml(article.title)} - 詳細要旨</title>
+  <meta name="description" content="${escapeHtml(article.shortSummary)}">
   <style>
     * {
       box-sizing: border-box;
@@ -151,9 +151,6 @@ function generateArticlePage(result: DetailedSummaryResult, loading: boolean = f
       font-weight: 600;
       color: #fff;
       margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
 
     .short-summary {
@@ -171,7 +168,7 @@ function generateArticlePage(result: DetailedSummaryResult, loading: boolean = f
       white-space: pre-wrap;
     }
 
-    .key-points ul {
+    .key-points {
       list-style: none;
       padding: 0;
     }
@@ -191,7 +188,7 @@ function generateArticlePage(result: DetailedSummaryResult, loading: boolean = f
       font-weight: bold;
     }
 
-    .target-audience p {
+    .target-audience {
       font-size: 14px;
       color: #a1a1aa;
     }
@@ -240,38 +237,6 @@ function generateArticlePage(result: DetailedSummaryResult, loading: boolean = f
       color: #71717a;
       text-align: center;
     }
-
-    .loading {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 20px;
-      color: #a1a1aa;
-    }
-
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid #3f3f46;
-      border-top-color: ${color};
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-bottom: 16px;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .error-card {
-      background: #450a0a;
-      border: 1px solid #7f1d1d;
-    }
-
-    .error-card h2 {
-      color: #fca5a5;
-    }
   </style>
 </head>
 <body>
@@ -279,26 +244,23 @@ function generateArticlePage(result: DetailedSummaryResult, loading: boolean = f
     <div class="header">
       <div class="category-badge">
         <span>${emoji}</span>
-        <span>${escapeHtml(result.category.toUpperCase())}</span>
+        <span>${escapeHtml(article.category.toUpperCase())}</span>
       </div>
-      <h1>${escapeHtml(result.title)}</h1>
+      <h1>${escapeHtml(article.title)}</h1>
       <div class="meta">
-        <span>Source: ${escapeHtml(result.source)}</span>
+        <span>Source: ${escapeHtml(article.source)}</span>
         <span>|</span>
-        <a href="${escapeHtml(result.url)}" target="_blank" rel="noopener">Open Original Article</a>
+        <a href="${escapeHtml(article.url)}" target="_blank" rel="noopener">元記事を開く</a>
       </div>
     </div>
 
-    ${loadingIndicator}
-
-    ${!loading ? `
     <div class="short-summary">
-      ${escapeHtml(result.shortSummary)}
+      ${escapeHtml(article.shortSummary)}
     </div>
 
     <div class="card">
-      <h2>Detailed Summary</h2>
-      <div class="detailed-summary">${escapeHtml(result.detailedSummary)}</div>
+      <h2>詳細要旨</h2>
+      <div class="detailed-summary">${escapeHtml(article.detailedSummary)}</div>
     </div>
 
     ${keyPointsHtml}
@@ -306,30 +268,29 @@ function generateArticlePage(result: DetailedSummaryResult, loading: boolean = f
     ${targetAudienceHtml}
 
     <div class="actions">
-      <a href="${escapeHtml(result.url)}" target="_blank" rel="noopener" class="btn btn-primary">
-        Read Full Article
+      <a href="${escapeHtml(article.url)}" target="_blank" rel="noopener" class="btn btn-primary">
+        元記事を読む
       </a>
       <a href="javascript:history.back()" class="btn btn-secondary">
-        Back
+        戻る
       </a>
     </div>
-    ` : ""}
 
     <div class="footer">
-      Generated by News Bot | ${result.fetchedAt.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
+      Generated by News Bot | ${article.createdAt.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
     </div>
   </div>
 </body>
 </html>`;
 }
 
-function generateErrorPage(error: string, url?: string): string {
+function generateNotFoundPage(articleUrl: string): string {
   return `<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Error - Article Summary</title>
+  <title>記事が見つかりません</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', Roboto, sans-serif;
@@ -341,7 +302,75 @@ function generateErrorPage(error: string, url?: string): string {
       min-height: 100vh;
       margin: 0;
     }
-    .error-container {
+    .container {
+      text-align: center;
+      padding: 40px;
+      max-width: 500px;
+    }
+    h1 {
+      font-size: 24px;
+      color: #fbbf24;
+      margin-bottom: 16px;
+    }
+    p {
+      color: #a1a1aa;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    a {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #3b82f6;
+      color: #fff;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>詳細要旨がまだ生成されていません</h1>
+    <p>
+      この記事の詳細要旨はまだデータベースに保存されていません。
+      次回のフィード更新時に生成される可能性があります。
+    </p>
+    <p>
+      <a href="${escapeHtml(articleUrl)}" target="_blank" class="btn">元記事を直接読む</a>
+    </p>
+    <p style="margin-top: 24px;">
+      <a href="javascript:history.back()">戻る</a>
+    </p>
+  </div>
+</body>
+</html>`;
+}
+
+function generateErrorPage(error: string): string {
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', Roboto, sans-serif;
+      background: #1a1b1e;
+      color: #e4e4e7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
       text-align: center;
       padding: 40px;
     }
@@ -358,17 +387,13 @@ function generateErrorPage(error: string, url?: string): string {
       color: #60a5fa;
       text-decoration: none;
     }
-    a:hover {
-      text-decoration: underline;
-    }
   </style>
 </head>
 <body>
-  <div class="error-container">
+  <div class="container">
     <h1>Error</h1>
     <p>${escapeHtml(error)}</p>
-    ${url ? `<p><a href="${escapeHtml(url)}" target="_blank">Try opening the original article</a></p>` : ""}
-    <p><a href="javascript:history.back()">Go Back</a></p>
+    <p><a href="javascript:history.back()">戻る</a></p>
   </div>
 </body>
 </html>`;
@@ -425,17 +450,17 @@ function generateIndexPage(): string {
   <div class="container">
     <h1>Article Summary Service</h1>
     <p>
-      This service generates detailed summaries for tech articles and papers.
-      Access via Discord feed links or use the API directly.
+      テック記事・論文の詳細要旨を表示するサービスです。
+      Discordフィードのリンクからアクセスしてください。
     </p>
     <div class="usage">
-      <h2>Usage</h2>
+      <h2>使い方</h2>
       <p>
         <code>GET /article?url=ENCODED_ARTICLE_URL</code>
       </p>
       <p>
-        The service will fetch the article content, generate a detailed summary using AI,
-        and display it in a readable format.
+        記事の詳細要旨はフィード処理時に事前生成されています。
+        DBに保存された要旨を即座に表示します。
       </p>
     </div>
   </div>
@@ -443,12 +468,10 @@ function generateIndexPage(): string {
 </html>`;
 }
 
-// Start server
-if (!GROQ_API_KEY) {
-  console.error("GROQ_API_KEY environment variable is required");
-  process.exit(1);
-}
+// Initialize database
+ensureDb();
 
+// Start server
 Bun.serve({
   port: PORT,
   async fetch(req) {
@@ -472,49 +495,53 @@ Bun.serve({
         });
       }
 
-      // Check cache
-      const cached = cache.get(articleUrl);
-      if (cached && Date.now() - cached.cachedAt.getTime() < CACHE_TTL_MS) {
-        console.log(`Cache hit for: ${articleUrl}`);
-        return new Response(generateArticlePage(cached.result), {
+      // Fetch from DB
+      const article = getArticleByUrl(articleUrl);
+
+      if (!article) {
+        return new Response(generateNotFoundPage(articleUrl), {
+          status: 404,
           headers: { "Content-Type": "text/html; charset=utf-8" },
         });
       }
 
-      // Extract article info from URL (basic metadata)
-      const articleInfo = {
-        title: decodeURIComponent(articleUrl.split("/").pop() || "Article"),
-        url: articleUrl,
-        source: new URL(articleUrl).hostname,
-        category: guessCategory(articleUrl),
+      if (!article.detailed_summary) {
+        return new Response(generateNotFoundPage(articleUrl), {
+          status: 404,
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        });
+      }
+
+      // Parse key_points from JSON
+      let keyPoints: string[] = [];
+      if (article.key_points) {
+        try {
+          keyPoints = JSON.parse(article.key_points);
+        } catch {
+          keyPoints = [];
+        }
+      }
+
+      const display: ArticleDisplay = {
+        title: article.title,
+        url: article.url,
+        source: article.source,
+        category: article.category,
+        shortSummary: article.summary || article.title,
+        detailedSummary: article.detailed_summary,
+        keyPoints,
+        targetAudience: article.target_audience,
+        createdAt: article.created_at ? new Date(article.created_at) : new Date(),
       };
 
-      console.log(`Generating detailed summary for: ${articleUrl}`);
-
-      try {
-        const result = await generateDetailedSummary(articleInfo, GROQ_API_KEY);
-
-        // Update cache
-        cache.set(articleUrl, { result, cachedAt: new Date() });
-
-        return new Response(generateArticlePage(result), {
-          headers: { "Content-Type": "text/html; charset=utf-8" },
-        });
-      } catch (error) {
-        console.error("Error generating summary:", error);
-        return new Response(
-          generateErrorPage("Failed to generate summary. Please try again.", articleUrl),
-          {
-            status: 500,
-            headers: { "Content-Type": "text/html; charset=utf-8" },
-          }
-        );
-      }
+      return new Response(generateArticlePage(display), {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      });
     }
 
     // Health check
     if (url.pathname === "/health") {
-      return new Response(JSON.stringify({ status: "ok", cached: cache.size }), {
+      return new Response(JSON.stringify({ status: "ok" }), {
         headers: { "Content-Type": "application/json" },
       });
     }
@@ -527,20 +554,4 @@ Bun.serve({
   },
 });
 
-/**
- * Guess category from URL
- */
-function guessCategory(url: string): string {
-  const urlLower = url.toLowerCase();
-  if (urlLower.includes("arxiv.org")) return "ai";
-  if (urlLower.includes("huggingface.co")) return "ai";
-  if (urlLower.includes("github.com")) return "repos";
-  if (urlLower.includes("vercel.com") || urlLower.includes("react") || urlLower.includes("nextjs")) return "frontend";
-  if (urlLower.includes("laravel") || urlLower.includes("php")) return "backend";
-  if (urlLower.includes("zenn.dev") || urlLower.includes("qiita.com")) return "tech-jp";
-  if (urlLower.includes("coindesk") || urlLower.includes("bitcoin") || urlLower.includes("crypto")) return "crypto";
-  return "tech";
-}
-
 console.log(`Article summary server running at http://localhost:${PORT}`);
-console.log(`External: ${BASE_URL}/`);

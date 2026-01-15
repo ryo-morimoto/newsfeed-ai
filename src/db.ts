@@ -10,6 +10,9 @@ export interface Article {
   source: string;
   category: string;
   summary?: string;
+  detailed_summary?: string;
+  key_points?: string; // JSON array stored as string
+  target_audience?: string;
   score?: number;
   published_at?: string;
   created_at?: string;
@@ -43,6 +46,9 @@ export function ensureDb(dbPath?: string) {
       source TEXT NOT NULL,
       category TEXT NOT NULL,
       summary TEXT,
+      detailed_summary TEXT,
+      key_points TEXT,
+      target_audience TEXT,
       score REAL,
       published_at TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -81,16 +87,19 @@ export function isArticleSeen(url: string): boolean {
 
 export function saveArticle(article: Omit<Article, "id" | "created_at">) {
   const stmt = getDb().query(`
-    INSERT OR IGNORE INTO articles (url, title, source, category, summary, score, published_at, notified)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO articles (url, title, source, category, summary, detailed_summary, key_points, target_audience, score, published_at, notified)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  
+
   return stmt.run(
     article.url,
     article.title,
     article.source,
     article.category,
     article.summary || null,
+    article.detailed_summary || null,
+    article.key_points || null,
+    article.target_audience || null,
     article.score || null,
     article.published_at || null,
     article.notified ? 1 : 0
@@ -106,10 +115,35 @@ export function markAsNotified(urls: string[]) {
 
 export function getRecentArticles(hours: number = 24): Article[] {
   return getDb().query(`
-    SELECT * FROM articles 
+    SELECT * FROM articles
     WHERE created_at > datetime('now', '-' || ? || ' hours')
     ORDER BY created_at DESC
   `).all(hours) as Article[];
+}
+
+export function getArticleByUrl(url: string): Article | null {
+  return getDb().query(`
+    SELECT * FROM articles WHERE url = ?
+  `).get(url) as Article | null;
+}
+
+export function updateArticleDetailedSummary(
+  url: string,
+  detailedSummary: string,
+  keyPoints: string[],
+  targetAudience?: string
+) {
+  const stmt = getDb().query(`
+    UPDATE articles
+    SET detailed_summary = ?, key_points = ?, target_audience = ?
+    WHERE url = ?
+  `);
+  return stmt.run(
+    detailedSummary,
+    JSON.stringify(keyPoints),
+    targetAudience || null,
+    url
+  );
 }
 
 /**

@@ -93,7 +93,7 @@ describe("createArticleEmbeds", () => {
     expect(firstEmbed.title).toBe("New AI Model Released");
     expect(firstEmbed.url).toBe("https://example.com/ai-model");
     expect(firstEmbed.description).toContain("革新的なAIモデルがリリースされました");
-    expect(firstEmbed.description).toContain("[View Detailed Summary]");
+    // Note: detail link only shows if ARTICLE_SERVER_URL env is configured
     expect(firstEmbed.footer?.text).toContain("Tech News");
   });
 
@@ -121,8 +121,8 @@ describe("createArticleEmbeds", () => {
     }];
 
     const embeds = createArticleEmbeds(articles);
-    // Empty summary should still have the detailed summary link
-    expect(embeds[0].description).toContain("[View Detailed Summary]");
+    // Without ARTICLE_SERVER_URL env, description is undefined for empty summary
+    expect(embeds[0].description).toBeUndefined();
   });
 });
 
@@ -168,9 +168,8 @@ describe("createDigestEmbed", () => {
     const embeds = createDigestEmbed(articles);
     const field = embeds[0].fields?.[0];
 
-    // Summary text should be truncated to ~50 chars + "..." (plus detail link)
-    // Format: • [truncated_text](url) [[+]](detail_url)
+    // Summary text should be truncated to ~50 chars + "..."
+    // Format: • [truncated_text](url) (detail link only if ARTICLE_SERVER_URL is set)
     expect(field?.value).toContain("...");
-    expect(field?.value).toContain("[[+]]");
   });
 });
