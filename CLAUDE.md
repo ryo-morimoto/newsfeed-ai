@@ -107,48 +107,41 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 
 ## systemd サービス
 
-サービスファイルは`.example`としてリポジトリに含まれている。初回セットアップ時にコピーして環境に合わせて編集する。
+サービスファイルは`systemd/`ディレクトリに配置されている。`__USER__`プレースホルダーはデプロイ時に自動で置換される。
 
-### Discord Bot
+### 初回セットアップ
 
-初回セットアップ:
+デプロイスクリプトが自動的にサービスファイルをインストールする:
+
 ```bash
-# exampleをコピーして編集（__USER__を実際のユーザー名に置換）
-sed 's/__USER__/exedev/g' newsfeed-ai-bot.service.example | sudo tee /etc/systemd/system/newsfeed-ai-bot.service
-sudo systemctl daemon-reload
-sudo systemctl enable newsfeed-ai-bot
-sudo systemctl start newsfeed-ai-bot
+# デプロイ実行（サービスファイルも自動設定される）
+./scripts/deploy.sh
 ```
+
+### 手動セットアップ（必要な場合のみ）
+
+```bash
+# Discord Bot
+sed 's/__USER__/exedev/g' systemd/newsfeed-ai-bot.service | sudo tee /etc/systemd/system/newsfeed-ai-bot.service
+sudo systemctl daemon-reload && sudo systemctl enable newsfeed-ai-bot && sudo systemctl start newsfeed-ai-bot
+
+# Web UI
+sed 's/__USER__/exedev/g' systemd/newsfeed-ai-web.service | sudo tee /etc/systemd/system/newsfeed-ai-web.service
+sudo systemctl daemon-reload && sudo systemctl enable newsfeed-ai-web && sudo systemctl start newsfeed-ai-web
+```
+
+### 運用コマンド
 
 ```bash
 # 状態確認
 sudo systemctl status newsfeed-ai-bot
-
-# 再起動（コード更新後）
-sudo systemctl restart newsfeed-ai-bot
-
-# ログ確認
-sudo journalctl -u newsfeed-ai-bot -f
-```
-
-### Web UI (TanStack Start)
-
-初回セットアップ:
-```bash
-# exampleをコピーして編集（__USER__を実際のユーザー名に置換）
-sed 's/__USER__/exedev/g' newsfeed-ai-web.service.example | sudo tee /etc/systemd/system/newsfeed-ai-web.service
-sudo systemctl daemon-reload
-sudo systemctl enable newsfeed-ai-web
-sudo systemctl start newsfeed-ai-web
-```
-
-```bash
-# 状態確認
 sudo systemctl status newsfeed-ai-web
 
 # 再起動
+sudo systemctl restart newsfeed-ai-bot
 sudo systemctl restart newsfeed-ai-web
 
 # ログ確認
+sudo journalctl -u newsfeed-ai-bot -f
 sudo journalctl -u newsfeed-ai-web -f
 ```

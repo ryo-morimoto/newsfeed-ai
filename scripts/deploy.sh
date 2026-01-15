@@ -50,8 +50,8 @@ update_service_file() {
     fi
 }
 
-update_service_file "$PROJECT_DIR/newsfeed-ai-bot.service.example" "$BOT_SERVICE"
-update_service_file "$PROJECT_DIR/newsfeed-ai-web.service.example" "$WEB_SERVICE"
+update_service_file "$PROJECT_DIR/systemd/newsfeed-ai-bot.service" "$BOT_SERVICE"
+update_service_file "$PROJECT_DIR/systemd/newsfeed-ai-web.service" "$WEB_SERVICE"
 
 # Build web UI
 echo "🔨 Building web UI..."
