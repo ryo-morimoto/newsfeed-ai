@@ -7,8 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // DBパスは親プロジェクトのdata/history.db
-// ビルド後は dist/server/assets/ にあるので4階層上
-const DB_PATH = join(__dirname, "..", "..", "..", "..", "data", "history.db");
+// ビルド後は dist/server/assets/ にあるので5階層上 (apps/web/dist/server/assets/)
+const DB_PATH = join(__dirname, "..", "..", "..", "..", "..", "data", "history.db");
 
 export interface Article {
   id?: number;

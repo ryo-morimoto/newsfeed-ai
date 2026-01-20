@@ -33,8 +33,8 @@ const ORAMA_SCHEMA = {
 type OramaDb = Orama<typeof ORAMA_SCHEMA>;
 
 // Index file path - same as main project
-// When built, this is in dist/server/assets/, so go up 4 levels
-const INDEX_FILE_PATH = join(__dirname, "..", "..", "..", "..", "data", "orama-index.msp");
+// When built, this is in dist/server/assets/, so go up 5 levels (apps/web/dist/server/assets/)
+const INDEX_FILE_PATH = join(__dirname, "..", "..", "..", "..", "..", "data", "orama-index.msp");
 
 let oramaDb: OramaDb | null = null;
 let initPromise: Promise<void> | null = null;
