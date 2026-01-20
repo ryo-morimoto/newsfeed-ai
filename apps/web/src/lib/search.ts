@@ -10,13 +10,8 @@ import {
   persist,
   restore,
 } from "@orama/plugin-data-persistence";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { paths } from "@newsfeed-ai/core";
 import type { Article } from "./db";
-
-// ESM環境で__dirnameを取得
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 // Schema definition for Orama
 const ORAMA_SCHEMA = {
@@ -31,10 +26,6 @@ const ORAMA_SCHEMA = {
 } as const;
 
 type OramaDb = Orama<typeof ORAMA_SCHEMA>;
-
-// Index file path - same as main project
-// When built, this is in dist/server/assets/, so go up 5 levels (apps/web/dist/server/assets/)
-const INDEX_FILE_PATH = join(__dirname, "..", "..", "..", "..", "..", "data", "orama-index.msp");
 
 let oramaDb: OramaDb | null = null;
 let initPromise: Promise<void> | null = null;
@@ -79,9 +70,9 @@ async function initSearchIndex(): Promise<void> {
     try {
       // Check for BunFile or Node.js fs
       const fs = await import("node:fs");
-      if (fs.existsSync(INDEX_FILE_PATH)) {
+      if (fs.existsSync(paths.searchIndex)) {
         console.log("[web-search] Restoring index from file...");
-        const data = fs.readFileSync(INDEX_FILE_PATH);
+        const data = fs.readFileSync(paths.searchIndex);
         oramaDb = await restore("binary", Buffer.from(data)) as OramaDb;
         console.log("[web-search] Index restored successfully");
         return;
@@ -282,8 +273,8 @@ export async function persistIndex(): Promise<void> {
     const buffer = typeof data === "string"
       ? Buffer.from(data)
       : Buffer.from(new Uint8Array(data as ArrayBuffer));
-    fs.writeFileSync(INDEX_FILE_PATH, buffer);
-    console.log(`[web-search] Index persisted to ${INDEX_FILE_PATH}`);
+    fs.writeFileSync(paths.searchIndex, buffer);
+    console.log(`[web-search] Index persisted to ${paths.searchIndex}`);
   } catch (error) {
     console.error("[web-search] Failed to persist index:", error);
   }

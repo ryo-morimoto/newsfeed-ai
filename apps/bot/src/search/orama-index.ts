@@ -10,7 +10,7 @@ import {
   persist,
   restore,
 } from "@orama/plugin-data-persistence";
-import { join } from "path";
+import { paths } from "@newsfeed-ai/core";
 import type { Article } from "../db";
 
 // Schema definition for Orama
@@ -36,9 +36,6 @@ interface OramaDocumentInput {
   source: string;
   created_at: string;
 }
-
-// Go up 4 directories from apps/bot/src/search to project root
-const INDEX_FILE_PATH = join(import.meta.dir, "..", "..", "..", "..", "data", "orama-index.msp");
 
 let oramaDb: OramaDb | null = null;
 let initPromise: Promise<void> | null = null;
@@ -97,7 +94,7 @@ export async function initSearchIndex(): Promise<void> {
   initPromise = (async () => {
     try {
       // Try to restore from persisted file
-      const indexFile = Bun.file(INDEX_FILE_PATH);
+      const indexFile = Bun.file(paths.searchIndex);
       if (await indexFile.exists()) {
         console.log("[search] Restoring index from file...");
         const data = await indexFile.arrayBuffer();
@@ -201,8 +198,8 @@ export async function persistIndex(): Promise<void> {
 
   try {
     const data = await persist(oramaDb, "binary");
-    await Bun.write(INDEX_FILE_PATH, data);
-    console.log(`[search] Index persisted to ${INDEX_FILE_PATH}`);
+    await Bun.write(paths.searchIndex, data);
+    console.log(`[search] Index persisted to ${paths.searchIndex}`);
   } catch (error) {
     console.error("[search] Failed to persist index:", error);
   }
@@ -213,10 +210,10 @@ export async function persistIndex(): Promise<void> {
  */
 export async function deletePersistedIndex(): Promise<void> {
   try {
-    const indexFile = Bun.file(INDEX_FILE_PATH);
+    const indexFile = Bun.file(paths.searchIndex);
     if (await indexFile.exists()) {
       const { unlink } = await import("node:fs/promises");
-      await unlink(INDEX_FILE_PATH);
+      await unlink(paths.searchIndex);
       console.log("[search] Deleted persisted index");
     }
   } catch (error) {

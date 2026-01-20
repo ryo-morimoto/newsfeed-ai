@@ -1,8 +1,5 @@
 import { createClient, type Client } from "@libsql/client";
-import { join } from "path";
-
-// Go up 3 directories from apps/bot/src to project root
-const DEFAULT_DB_PATH = join(import.meta.dir, "..", "..", "..", "data", "history.db");
+import { paths } from "@newsfeed-ai/core";
 
 export interface Article {
   id?: number;
@@ -58,7 +55,7 @@ export async function ensureDb(dbPath?: string): Promise<Client> {
     console.log("[db] Connected to Turso");
   } else {
     // Fall back to local SQLite file
-    const localPath = dbPath || DEFAULT_DB_PATH;
+    const localPath = dbPath || paths.database;
     client = createClient({
       url: `file:${localPath}`,
     });

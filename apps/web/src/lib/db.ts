@@ -1,14 +1,5 @@
 import { createClient, type Client } from "@libsql/client";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
-
-// ESM環境で__dirnameを取得
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// DBパスは親プロジェクトのdata/history.db
-// ビルド後は dist/server/assets/ にあるので5階層上 (apps/web/dist/server/assets/)
-const DB_PATH = join(__dirname, "..", "..", "..", "..", "..", "data", "history.db");
+import { paths } from "@newsfeed-ai/core";
 
 export interface Article {
   id?: number;
@@ -41,7 +32,7 @@ function getClient(): Client {
     } else {
       // Fall back to local SQLite file
       client = createClient({
-        url: `file:${DB_PATH}`,
+        url: `file:${paths.database}`,
       });
     }
   }
