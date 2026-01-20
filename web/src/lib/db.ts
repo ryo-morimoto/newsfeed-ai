@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import { createClient, type Client } from "@libsql/client";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -26,28 +26,59 @@ export interface Article {
   notified: number;
 }
 
-let db: Database | null = null;
+let client: Client | null = null;
 
-function getDb(): Database {
-  if (!db) {
-    db = new Database(DB_PATH, { readonly: true });
+function getClient(): Client {
+  if (!client) {
+    const tursoUrl = process.env.TURSO_DATABASE_URL;
+    const tursoToken = process.env.TURSO_AUTH_TOKEN;
+
+    if (tursoUrl && tursoToken) {
+      client = createClient({
+        url: tursoUrl,
+        authToken: tursoToken,
+      });
+    } else {
+      // Fall back to local SQLite file
+      client = createClient({
+        url: `file:${DB_PATH}`,
+      });
+    }
   }
-  return db;
+  return client;
 }
 
-export function getArticlesWithDetailedSummary(limit: number = 50): Article[] {
-  const stmt = getDb().prepare(`
+export async function getArticlesWithDetailedSummary(limit: number = 50): Promise<Article[]> {
+  const db = getClient();
+  const result = await db.execute({
+    sql: `
+      SELECT * FROM articles
+      WHERE detailed_summary IS NOT NULL
+      ORDER BY created_at DESC
+      LIMIT ?
+    `,
+    args: [limit],
+  });
+  return result.rows as unknown as Article[];
+}
+
+export async function getArticleByUrl(url: string): Promise<Article | null> {
+  const db = getClient();
+  const result = await db.execute({
+    sql: "SELECT * FROM articles WHERE url = ?",
+    args: [url],
+  });
+  return (result.rows[0] as unknown as Article) || null;
+}
+
+/**
+ * Get all articles for search indexing
+ */
+export async function getAllArticles(): Promise<Article[]> {
+  const db = getClient();
+  const result = await db.execute(`
     SELECT * FROM articles
-    WHERE detailed_summary IS NOT NULL
     ORDER BY created_at DESC
-    LIMIT ?
   `);
-  return stmt.all(limit) as Article[];
-}
-
-export function getArticleByUrl(url: string): Article | null {
-  const stmt = getDb().prepare(`
-    SELECT * FROM articles WHERE url = ?
-  `);
-  return stmt.get(url) as Article | null;
+  return result.rows as unknown as Article[];
 }

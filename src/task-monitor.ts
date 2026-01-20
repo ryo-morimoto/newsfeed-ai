@@ -320,8 +320,8 @@ async function createPrWithGh(
  * Register a task for completion notification.
  * Call this when a task is started via feedback command.
  */
-export function watchTask(taskId: string, channelId: string, messageId: string): void {
-  registerTaskNotification(taskId, channelId, messageId);
+export async function watchTask(taskId: string, channelId: string, messageId: string): Promise<void> {
+  await registerTaskNotification(taskId, channelId, messageId);
   console.log(`[task-monitor] Registered task ${taskId} for notification`);
 }
 
@@ -330,7 +330,7 @@ export function watchTask(taskId: string, channelId: string, messageId: string):
  * This is the main function called periodically by the bot.
  */
 export async function checkPendingTasks(): Promise<TaskCompletionInfo[]> {
-  const pending = getPendingTaskNotifications();
+  const pending = await getPendingTaskNotifications();
   if (pending.length === 0) return [];
 
   console.log(`[task-monitor] Checking ${pending.length} pending tasks...`);
@@ -373,7 +373,7 @@ export async function checkPendingTasks(): Promise<TaskCompletionInfo[]> {
       });
 
       // Mark as notified
-      markTaskNotified(notification.task_id);
+      await markTaskNotified(notification.task_id);
       console.log(`[task-monitor] Task ${notification.task_id} completed, PR: ${prUrl || "none"}`);
     }
     // Check if task failed
@@ -387,7 +387,7 @@ export async function checkPendingTasks(): Promise<TaskCompletionInfo[]> {
         error: "Task attempt failed",
       });
 
-      markTaskNotified(notification.task_id);
+      await markTaskNotified(notification.task_id);
       console.log(`[task-monitor] Task ${notification.task_id} failed`);
     }
     // Still in progress - do nothing, will check again next cycle
@@ -399,6 +399,6 @@ export async function checkPendingTasks(): Promise<TaskCompletionInfo[]> {
 /**
  * Cleanup old notified tasks from DB
  */
-export function cleanup(daysOld: number = 7): void {
-  cleanupOldTaskNotifications(daysOld);
+export async function cleanup(daysOld: number = 7): Promise<void> {
+  await cleanupOldTaskNotifications(daysOld);
 }

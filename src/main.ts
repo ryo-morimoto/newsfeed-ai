@@ -35,7 +35,7 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
   console.log(`GROQ_API_KEY: ${GROQ_API_KEY ? "set" : "not set"}`);
 
   // Initialize database
-  ensureDb();
+  await ensureDb();
 
   const allArticles: ArticleToFilter[] = [];
 
@@ -49,7 +49,7 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
     let added = 0;
     for (const item of hnItems) {
       if (added >= MAX_PER_SOURCE) break;
-      if (!isArticleSeen(item.url)) {
+      if (!(await isArticleSeen(item.url))) {
         // Include score and comments as supplementary info for title-only articles
         const contentParts = [`HN Score: ${item.score}点`];
         if (item.comments > 0) {
@@ -78,7 +78,7 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
     let added = 0;
     for (const item of items) {
       if (added >= MAX_PER_SOURCE) break;
-      if (!isArticleSeen(item.url)) {
+      if (!(await isArticleSeen(item.url))) {
         allArticles.push({
           title: item.title,
           url: item.url,
@@ -103,7 +103,7 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
     let added = 0;
     for (const repo of repos) {
       if (added >= MAX_PER_SOURCE) break;
-      if (!isArticleSeen(repo.url)) {
+      if (!(await isArticleSeen(repo.url))) {
         allArticles.push({
           title: repo.title,
           url: repo.url,
@@ -152,7 +152,7 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
         GROQ_API_KEY
       );
       // Store in DB
-      updateArticleDetailedSummary(
+      await updateArticleDetailedSummary(
         article.url,
         detailed.detailedSummary,
         detailed.keyPoints,
@@ -177,7 +177,7 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
   // Save all fetched articles to DB (for dedup next time)
   console.log("\n💾 Saving to database...");
   for (const article of allArticles) {
-    saveArticle({
+    await saveArticle({
       url: article.url,
       title: article.title,
       source: article.source,
@@ -203,8 +203,8 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
 /**
  * Mark articles as notified (call after successful send)
  */
-export function markArticlesNotified(articles: NotifyArticle[]) {
-  markAsNotified(articles.map((a) => a.url));
+export async function markArticlesNotified(articles: NotifyArticle[]) {
+  await markAsNotified(articles.map((a) => a.url));
 }
 
 async function main() {
@@ -230,7 +230,7 @@ async function main() {
     console.log(`\n📤 Sending to Discord via webhook...`);
     const success = await sendEmbedsToDiscord(DISCORD_WEBHOOK, result.embeds);
     if (success) {
-      markArticlesNotified(result.articles);
+      await markArticlesNotified(result.articles);
       console.log("✅ Notifications sent!");
     }
   } else {

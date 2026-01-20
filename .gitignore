@@ -3,7 +3,7 @@ data/*.db
 data/*.log
 .env
 *.db-journal
-newsfeed-ai-bot.service
+/newsfeed-ai-bot.service
 .githooks/
 
 # Web UI build artifacts

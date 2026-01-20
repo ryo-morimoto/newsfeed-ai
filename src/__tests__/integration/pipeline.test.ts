@@ -1,13 +1,16 @@
 import { test, expect, describe, beforeEach, afterEach, mock, spyOn } from "bun:test";
 import { join } from "path";
 import { unlinkSync, existsSync } from "fs";
-import { ensureDb, closeDb, isArticleSeen, getRecentArticles } from "../../db";
+import { ensureDb, closeDb, isArticleSeen, getRecentArticles, saveArticle } from "../../db";
 import { filterArticles, type ArticleToFilter } from "../../filter";
 import { summarizeArticles, type ArticleToSummarize } from "../../summarize";
 import { createCategoryEmbeds } from "../../discord-embed";
 import type { NotifyArticle } from "../../notify";
 
 const TEST_DB_PATH = join(import.meta.dir, "..", "..", "..", "data", "pipeline-test.db");
+
+// Skip search index sync in tests (loads TensorFlow which is slow)
+process.env.SKIP_SEARCH_INDEX = "1";
 
 describe("Filter → Summarize Pipeline", () => {
   const originalFetch = globalThis.fetch;
@@ -48,7 +51,7 @@ describe("Filter → Summarize Pipeline", () => {
 
     globalThis.fetch = mock(async (url: string | URL | Request) => {
       const urlStr = url.toString();
-      
+
       if (!filterCalled) {
         filterCalled = true;
         // Filter response - only AI article passes
@@ -114,11 +117,11 @@ describe("Filter → Summarize Pipeline", () => {
 describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
   const originalFetch = globalThis.fetch;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     if (existsSync(TEST_DB_PATH)) {
       unlinkSync(TEST_DB_PATH);
     }
-    ensureDb(TEST_DB_PATH);
+    await ensureDb(TEST_DB_PATH);
   });
 
   afterEach(() => {
@@ -126,6 +129,11 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
     if (existsSync(TEST_DB_PATH)) {
       unlinkSync(TEST_DB_PATH);
     }
+    // Also clean up WAL files
+    const walPath = TEST_DB_PATH + "-wal";
+    const shmPath = TEST_DB_PATH + "-shm";
+    if (existsSync(walPath)) unlinkSync(walPath);
+    if (existsSync(shmPath)) unlinkSync(shmPath);
     globalThis.fetch = originalFetch;
   });
 
@@ -188,10 +196,10 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
 
     // Step 4: Create embeds
     const embeds = createCategoryEmbeds(toNotify);
-    
+
     expect(embeds.length).toBeGreaterThan(0);
     expect(embeds[0].title).toBe("📰 Tech Digest");
-    
+
     // Find AI category embed
     const aiEmbed = embeds.find(e => e.description?.includes("test.com"));
     expect(aiEmbed).toBeDefined();
@@ -199,8 +207,7 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
 
   test("pipeline skips already seen articles", async () => {
     // Pre-populate DB with seen article
-    const { saveArticle } = await import("../../db");
-    saveArticle({
+    await saveArticle({
       url: "https://test.com/seen",
       title: "Already Seen",
       source: "Test",
@@ -227,8 +234,13 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
     ];
 
     // Filter out seen
-    const newArticles = sourceArticles.filter(a => !isArticleSeen(a.url));
-    
+    const newArticles: ArticleToFilter[] = [];
+    for (const a of sourceArticles) {
+      if (!(await isArticleSeen(a.url))) {
+        newArticles.push(a);
+      }
+    }
+
     expect(newArticles.length).toBe(1);
     expect(newArticles[0].title).toBe("New Article");
   });

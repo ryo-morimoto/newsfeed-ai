@@ -14,9 +14,6 @@ import { sendEmbedsViaBot } from "./discord-embed";
 import { runFeedbackAgent, type FeedbackResult } from "./agent-feedback";
 import { watchTask, checkPendingTasks, cleanup, type TaskCompletionInfo } from "./task-monitor";
 
-// Initialize database
-ensureDb();
-
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -96,7 +93,7 @@ async function runScheduledNewsfeed() {
 
     const success = await sendEmbedsViaBot(channel, result.embeds);
     if (success) {
-      markArticlesNotified(result.articles);
+      await markArticlesNotified(result.articles);
       console.log(`✅ Posted ${result.articles.length} articles to Discord`);
     }
   } catch (error) {
@@ -190,7 +187,7 @@ client.once(Events.ClientReady, async (c) => {
   setInterval(checkAndNotifyTasks, TASK_CHECK_INTERVAL_MS);
 
   // Cleanup old task notifications daily
-  setInterval(() => cleanup(7), 24 * 60 * 60 * 1000);
+  setInterval(() => { cleanup(7).catch(console.error); }, 24 * 60 * 60 * 1000);
 
   // Run checks immediately on startup
   checkSchedule();
@@ -242,7 +239,7 @@ async function handleFeedbackInteraction(
       const replyMessage = await interaction.editReply(response);
 
       // Register task for notification (stateless - survives bot restarts)
-      watchTask(result.taskId, interaction.channelId, replyMessage.id);
+      await watchTask(result.taskId, interaction.channelId, replyMessage.id);
 
     } else if (result.taskId) {
       await interaction.editReply(
@@ -270,6 +267,10 @@ if (!CHANNEL_ID) {
   process.exit(1);
 }
 
-client.login(token);
+// Initialize database and start bot
+(async () => {
+  await ensureDb();
+  await client.login(token);
+})();
 
 export { client };

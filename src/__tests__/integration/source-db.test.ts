@@ -15,12 +15,15 @@ import type { TrendingRepo } from "../../sources/github-trending";
 
 const TEST_DB_PATH = join(import.meta.dir, "..", "..", "..", "data", "integration-test.db");
 
+// Skip search index sync in tests (loads TensorFlow which is slow)
+process.env.SKIP_SEARCH_INDEX = "1";
+
 describe("Source → DB Integration", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     if (existsSync(TEST_DB_PATH)) {
       unlinkSync(TEST_DB_PATH);
     }
-    ensureDb(TEST_DB_PATH);
+    await ensureDb(TEST_DB_PATH);
   });
 
   afterEach(() => {
@@ -28,6 +31,11 @@ describe("Source → DB Integration", () => {
     if (existsSync(TEST_DB_PATH)) {
       unlinkSync(TEST_DB_PATH);
     }
+    // Also clean up WAL files
+    const walPath = TEST_DB_PATH + "-wal";
+    const shmPath = TEST_DB_PATH + "-shm";
+    if (existsSync(walPath)) unlinkSync(walPath);
+    if (existsSync(shmPath)) unlinkSync(shmPath);
   });
 
   describe("RSS → DB flow", () => {
@@ -46,9 +54,9 @@ describe("Source → DB Integration", () => {
       },
     ];
 
-    test("saves RSS items to database", () => {
+    test("saves RSS items to database", async () => {
       for (const item of mockRssItems) {
-        saveArticle({
+        await saveArticle({
           url: item.url,
           title: item.title,
           source: "Dev Blog",
@@ -58,15 +66,15 @@ describe("Source → DB Integration", () => {
         });
       }
 
-      const recent = getRecentArticles(24);
+      const recent = await getRecentArticles(24);
       expect(recent.length).toBe(2);
       expect(recent.map(a => a.url)).toContain("https://devblog.com/ts-6");
       expect(recent.map(a => a.url)).toContain("https://devblog.com/rsc");
     });
 
-    test("detects duplicate RSS items via isArticleSeen", () => {
+    test("detects duplicate RSS items via isArticleSeen", async () => {
       // First save
-      saveArticle({
+      await saveArticle({
         url: mockRssItems[0].url,
         title: mockRssItems[0].title,
         source: "Dev Blog",
@@ -75,13 +83,13 @@ describe("Source → DB Integration", () => {
       });
 
       // Check duplicate detection
-      expect(isArticleSeen(mockRssItems[0].url)).toBe(true);
-      expect(isArticleSeen(mockRssItems[1].url)).toBe(false);
+      expect(await isArticleSeen(mockRssItems[0].url)).toBe(true);
+      expect(await isArticleSeen(mockRssItems[1].url)).toBe(false);
     });
 
-    test("filters out seen items before saving", () => {
+    test("filters out seen items before saving", async () => {
       // Pre-save one item
-      saveArticle({
+      await saveArticle({
         url: mockRssItems[0].url,
         title: "Old title",
         source: "Dev Blog",
@@ -90,13 +98,18 @@ describe("Source → DB Integration", () => {
       });
 
       // Simulate fetch + filter flow
-      const newItems = mockRssItems.filter(item => !isArticleSeen(item.url));
+      const newItems: FeedItem[] = [];
+      for (const item of mockRssItems) {
+        if (!(await isArticleSeen(item.url))) {
+          newItems.push(item);
+        }
+      }
       expect(newItems.length).toBe(1);
       expect(newItems[0].url).toBe("https://devblog.com/rsc");
 
       // Save only new items
       for (const item of newItems) {
-        saveArticle({
+        await saveArticle({
           url: item.url,
           title: item.title,
           source: "Dev Blog",
@@ -105,7 +118,7 @@ describe("Source → DB Integration", () => {
         });
       }
 
-      const recent = getRecentArticles(24);
+      const recent = await getRecentArticles(24);
       expect(recent.length).toBe(2);
     });
   });
@@ -126,9 +139,9 @@ describe("Source → DB Integration", () => {
       },
     ];
 
-    test("saves HN items with score in content", () => {
+    test("saves HN items with score in content", async () => {
       for (const item of mockHNItems) {
-        saveArticle({
+        await saveArticle({
           url: item.url,
           title: item.title,
           source: "Hacker News",
@@ -139,9 +152,9 @@ describe("Source → DB Integration", () => {
         });
       }
 
-      const recent = getRecentArticles(24);
+      const recent = await getRecentArticles(24);
       expect(recent.length).toBe(2);
-      
+
       const aiProject = recent.find(a => a.url.includes("ai-project"));
       expect(aiProject?.score).toBe(1.5);
     });
@@ -165,9 +178,9 @@ describe("Source → DB Integration", () => {
       },
     ];
 
-    test("saves trending repos to database", () => {
+    test("saves trending repos to database", async () => {
       for (const repo of mockRepos) {
-        saveArticle({
+        await saveArticle({
           url: repo.url,
           title: repo.title,
           source: `GitHub (${repo.language})`,
@@ -177,9 +190,9 @@ describe("Source → DB Integration", () => {
         });
       }
 
-      const recent = getRecentArticles(24);
+      const recent = await getRecentArticles(24);
       expect(recent.length).toBe(2);
-      
+
       const tsRepo = recent.find(a => a.title.includes("typescript"));
       expect(tsRepo?.source).toBe("GitHub (typescript)");
       expect(tsRepo?.summary).toContain("★234");
@@ -187,7 +200,7 @@ describe("Source → DB Integration", () => {
   });
 
   describe("Notification flow", () => {
-    test("marks articles as notified after send", () => {
+    test("marks articles as notified after send", async () => {
       const urls = [
         "https://example.com/article1",
         "https://example.com/article2",
@@ -196,7 +209,7 @@ describe("Source → DB Integration", () => {
 
       // Save articles
       for (const url of urls) {
-        saveArticle({
+        await saveArticle({
           url,
           title: "Test",
           source: "Test",
@@ -206,23 +219,23 @@ describe("Source → DB Integration", () => {
       }
 
       // Verify all unnotified
-      let articles = getRecentArticles(24);
+      let articles = await getRecentArticles(24);
       expect(articles.every(a => a.notified === 0)).toBe(true);
 
       // Mark first two as notified
-      markAsNotified(urls.slice(0, 2));
+      await markAsNotified(urls.slice(0, 2));
 
       // Verify state
-      articles = getRecentArticles(24);
+      articles = await getRecentArticles(24);
       const notifiedCount = articles.filter(a => a.notified === 1).length;
       const unnotifiedCount = articles.filter(a => a.notified === 0).length;
-      
+
       expect(notifiedCount).toBe(2);
       expect(unnotifiedCount).toBe(1);
     });
 
-    test("getRecentArticles returns both notified and unnotified", () => {
-      saveArticle({
+    test("getRecentArticles returns both notified and unnotified", async () => {
+      await saveArticle({
         url: "https://example.com/old",
         title: "Old Article",
         source: "Test",
@@ -230,7 +243,7 @@ describe("Source → DB Integration", () => {
         notified: 1,
       });
 
-      saveArticle({
+      await saveArticle({
         url: "https://example.com/new",
         title: "New Article",
         source: "Test",
@@ -238,7 +251,7 @@ describe("Source → DB Integration", () => {
         notified: 0,
       });
 
-      const articles = getRecentArticles(24);
+      const articles = await getRecentArticles(24);
       expect(articles.length).toBe(2);
     });
   });
