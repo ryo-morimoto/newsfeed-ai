@@ -46,6 +46,11 @@ export function ensureDb(dbPath?: string) {
   currentDbPath = dbPath || DEFAULT_DB_PATH;
   db = new Database(currentDbPath);
 
+  // Enable WAL mode for better concurrent access (Bot + Web UI sharing DB)
+  db.exec("PRAGMA journal_mode = WAL;");
+  // Wait up to 5 seconds if DB is locked
+  db.exec("PRAGMA busy_timeout = 5000;");
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS articles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
