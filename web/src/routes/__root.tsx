@@ -31,6 +31,7 @@ function RootComponent() {
             </a>
             <nav>
               <a href="/">記事一覧</a>
+              <a href="/search">検索</a>
             </nav>
           </div>
         </header>

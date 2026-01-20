@@ -158,20 +158,6 @@ export async function saveArticle(article: Omit<Article, "id" | "created_at">) {
     ],
   });
 
-  // Sync to Orama search index if article was inserted (skip in tests)
-  if (result.rowsAffected > 0 && !process.env.SKIP_SEARCH_INDEX) {
-    try {
-      const { addArticleToIndex } = await import("./search/search-service");
-      const saved = await getArticleByUrl(article.url);
-      if (saved) {
-        await addArticleToIndex(saved);
-      }
-    } catch (error) {
-      // Search index sync is not critical, log and continue
-      console.warn("[db] Failed to sync article to search index:", error);
-    }
-  }
-
   return result;
 }
 
