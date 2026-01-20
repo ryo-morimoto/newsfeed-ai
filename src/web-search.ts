@@ -169,8 +169,8 @@ function extractTitleFromUrl(url: string): string {
   try {
     const urlObj = new URL(url);
     const pathParts = urlObj.pathname.split("/").filter(Boolean);
-    if (pathParts.length > 0) {
-      const lastPart = pathParts[pathParts.length - 1];
+    const lastPart = pathParts.at(-1);
+    if (lastPart) {
       // Convert slug to title
       return lastPart
         .replace(/[-_]/g, " ")
