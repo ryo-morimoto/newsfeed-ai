@@ -1,0 +1,29 @@
+{
+  "name": "@newsfeed-ai/core",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./db": "./src/db/index.ts",
+    "./search": "./src/search/index.ts",
+    "./config": "./src/config/index.ts"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.0",
+    "@orama/orama": "^3.1.18",
+    "@orama/plugin-data-persistence": "^3.1.18",
+    "zod": "^4.0.0"
+  },
+  "peerDependencies": {
+    "@orama/plugin-embeddings": "^3.1.18"
+  },
+  "peerDependenciesMeta": {
+    "@orama/plugin-embeddings": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.8.0"
+  }
+}
