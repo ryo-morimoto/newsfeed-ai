@@ -45,11 +45,24 @@ async function migrate() {
       detailed_summary TEXT,
       category TEXT NOT NULL DEFAULT 'tech',
       source TEXT NOT NULL,
-      hn_score INTEGER,
-      hn_comments INTEGER,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // カラム追加（既存テーブル対応）
+  console.log("Adding missing columns...");
+  try {
+    await turso.execute("ALTER TABLE articles ADD COLUMN hn_score INTEGER");
+    console.log("  Added hn_score column");
+  } catch (e) {
+    // カラムが既に存在する場合は無視
+  }
+  try {
+    await turso.execute("ALTER TABLE articles ADD COLUMN hn_comments INTEGER");
+    console.log("  Added hn_comments column");
+  } catch (e) {
+    // カラムが既に存在する場合は無視
+  }
 
   await turso.execute(`
     CREATE TABLE IF NOT EXISTS task_notifications (
