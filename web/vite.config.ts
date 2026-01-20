@@ -10,4 +10,9 @@ export default defineConfig({
     // Externalize native modules that can't be bundled
     external: ["@tensorflow/tfjs-node"],
   },
+  build: {
+    rollupOptions: {
+      external: ["@tensorflow/tfjs-node"],
+    },
+  },
 });
