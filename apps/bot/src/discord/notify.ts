@@ -1,4 +1,4 @@
-import { getCategoryEmoji } from "./config";
+import { getCategoryEmoji } from "../config";
 
 export interface NotifyArticle {
   title: string;

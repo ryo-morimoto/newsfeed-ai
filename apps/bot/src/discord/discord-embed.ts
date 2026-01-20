@@ -1,7 +1,7 @@
-import { getCategoryEmoji } from "./config";
+import { getCategoryEmoji } from "../config";
 import type { NotifyArticle } from "./notify";
 import type { TextChannel } from "discord.js";
-import { getArticleDetailUrl } from "./article-url";
+import { getArticleDetailUrl } from "../article-url";
 
 // Discord Embed colors by category
 const categoryColors: Record<string, number> = {

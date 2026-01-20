@@ -1,5 +1,5 @@
-import { createCategoryEmbeds, createArticleEmbeds, createDigestEmbed, type DiscordEmbed } from "./discord-embed";
-import type { NotifyArticle } from "./notify";
+import { createCategoryEmbeds, createArticleEmbeds, createDigestEmbed, type DiscordEmbed } from "./discord/discord-embed";
+import type { NotifyArticle } from "./discord/notify";
 import { getCategoryEmoji } from "./config";
 
 // Sample data for preview

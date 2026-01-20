@@ -3,10 +3,10 @@ import { fetchRss } from "./sources/rss";
 import { fetchHackerNews } from "./sources/hackernews";
 import { fetchGitHubTrending } from "./sources/github-trending";
 import { filterArticles, type ArticleToFilter } from "./filter";
-import { summarizeArticles } from "./summarize";
-import { generateDetailedSummary } from "./detailed-summary";
-import { sendToDiscord, type NotifyArticle } from "./notify";
-import { createDigestEmbed, createCategoryEmbeds, sendEmbedsToDiscord, type DiscordEmbed } from "./discord-embed";
+import { summarizeArticles } from "./summarize/summarize";
+import { generateDetailedSummary } from "./summarize/detailed-summary";
+import { sendToDiscord, type NotifyArticle } from "./discord/notify";
+import { createDigestEmbed, createCategoryEmbeds, sendEmbedsToDiscord, type DiscordEmbed } from "./discord/discord-embed";
 import {
   getRssSources,
   getHackerNewsSource,

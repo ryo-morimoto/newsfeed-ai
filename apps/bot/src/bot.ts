@@ -10,7 +10,7 @@ import {
 } from "discord.js";
 import { ensureDb } from "./db";
 import { runNewsfeed, markArticlesNotified } from "./main";
-import { sendEmbedsViaBot } from "./discord-embed";
+import { sendEmbedsViaBot } from "./discord/discord-embed";
 import { runFeedbackAgent, type FeedbackResult } from "./agent-feedback";
 import { watchTask, checkPendingTasks, cleanup, type TaskCompletionInfo } from "./task-monitor";
 

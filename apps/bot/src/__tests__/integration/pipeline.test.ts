@@ -3,9 +3,9 @@ import { join } from "path";
 import { unlinkSync, existsSync } from "fs";
 import { ensureDb, closeDb, isArticleSeen, getRecentArticles, saveArticle } from "../../db";
 import { filterArticles, type ArticleToFilter } from "../../filter";
-import { summarizeArticles, type ArticleToSummarize } from "../../summarize";
-import { createCategoryEmbeds } from "../../discord-embed";
-import type { NotifyArticle } from "../../notify";
+import { summarizeArticles, type ArticleToSummarize } from "../../summarize/summarize";
+import { createCategoryEmbeds } from "../../discord/discord-embed";
+import type { NotifyArticle } from "../../discord/notify";
 
 const TEST_DB_PATH = join(import.meta.dir, "..", "..", "..", "data", "pipeline-test.db");
 

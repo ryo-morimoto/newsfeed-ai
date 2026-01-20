@@ -5,6 +5,7 @@ export type {
   SearchConfig,
   SearchOptions,
   OramaDocument,
+  Article,
 } from "./types";
 
 // Orama operations

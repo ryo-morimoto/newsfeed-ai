@@ -1,6 +1,6 @@
 import { test, expect, describe, afterEach, mock } from "bun:test";
-import { sendToDiscord, type NotifyArticle } from "../../notify";
-import { sendEmbedsToDiscord, createCategoryEmbeds, createDigestEmbed } from "../../discord-embed";
+import { sendToDiscord, type NotifyArticle } from "../../discord/notify";
+import { sendEmbedsToDiscord, createCategoryEmbeds, createDigestEmbed } from "../../discord/discord-embed";
 
 describe("Discord Integration", () => {
   const originalFetch = globalThis.fetch;
