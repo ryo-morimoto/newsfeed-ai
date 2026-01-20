@@ -8,6 +8,7 @@
     "start": "bun run server.ts"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-router": "^1.150.0",
     "@tanstack/react-start": "^1.150.0",
