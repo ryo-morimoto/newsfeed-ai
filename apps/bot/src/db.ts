@@ -1,7 +1,8 @@
 import { createClient, type Client } from "@libsql/client";
 import { join } from "path";
 
-const DEFAULT_DB_PATH = join(import.meta.dir, "..", "data", "history.db");
+// Go up 3 directories from apps/bot/src to project root
+const DEFAULT_DB_PATH = join(import.meta.dir, "..", "..", "..", "data", "history.db");
 
 export interface Article {
   id?: number;

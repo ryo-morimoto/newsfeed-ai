@@ -38,7 +38,8 @@ import { readFileSync } from "fs";
 export function loadConfig(): Config {
   if (config) return config;
 
-  const configPath = join(import.meta.dir, "..", "config", "sources.yaml");
+  // Go up 3 directories from apps/bot/src to project root
+  const configPath = join(import.meta.dir, "..", "..", "..", "config", "sources.yaml");
   const content = readFileSync(configPath, "utf-8");
   config = Bun.YAML.parse(content) as Config;
   return config;

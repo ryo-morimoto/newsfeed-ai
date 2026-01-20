@@ -37,7 +37,8 @@ interface OramaDocumentInput {
   created_at: string;
 }
 
-const INDEX_FILE_PATH = join(import.meta.dir, "..", "..", "data", "orama-index.msp");
+// Go up 4 directories from apps/bot/src/search to project root
+const INDEX_FILE_PATH = join(import.meta.dir, "..", "..", "..", "..", "data", "orama-index.msp");
 
 let oramaDb: OramaDb | null = null;
 let initPromise: Promise<void> | null = null;
