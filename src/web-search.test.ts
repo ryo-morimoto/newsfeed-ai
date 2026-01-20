@@ -24,6 +24,13 @@ describe("web-search", () => {
         }
       }
     });
+
+    test("should throw error when query is too long", async () => {
+      const longQuery = "a".repeat(2001);
+      await expect(webSearch(longQuery, "fake-key")).rejects.toThrow(
+        "Query too long (max 2000 characters)"
+      );
+    });
   });
 
   describe("webSearchWithGroq", () => {

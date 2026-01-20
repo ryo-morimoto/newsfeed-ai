@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { performSearch, type WebSearchResponse } from "~/lib/server-fns";
 
 export const Route = createFileRoute("/search")({
@@ -15,10 +15,12 @@ export const Route = createFileRoute("/search")({
       const result = await performSearch({ data: deps.q });
       return { result, query: deps.q };
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Search failed";
+      console.error(`[search] Search failed for query "${deps.q}":`, error);
       return {
         result: null,
         query: deps.q,
-        error: error instanceof Error ? error.message : "Search failed",
+        error: errorMsg,
       };
     }
   },
@@ -37,6 +39,11 @@ function SearchPage() {
   const navigate = useNavigate();
   const [inputValue, setInputValue] = useState(query);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Reset isSearching when loader data changes (navigation completes)
+  useEffect(() => {
+    setIsSearching(false);
+  }, [result, error]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();

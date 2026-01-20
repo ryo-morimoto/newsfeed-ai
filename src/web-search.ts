@@ -29,6 +29,10 @@ export async function webSearch(
     throw new Error("PERPLEXITY_API_KEY not set");
   }
 
+  if (query.length > 2000) {
+    throw new Error("Query too long (max 2000 characters)");
+  }
+
   const systemPrompt = `You are a helpful assistant that searches the web for tech news and information.
 When answering, always:
 1. Provide a concise summary (2-3 sentences) of the search results
@@ -148,10 +152,12 @@ Format your response as a concise summary (2-3 sentences).`,
  */
 export async function smartSearch(query: string): Promise<WebSearchResponse> {
   if (process.env.PERPLEXITY_API_KEY) {
+    console.log(`[web-search] Using Perplexity API for query: "${query.slice(0, 50)}${query.length > 50 ? "..." : ""}"`);
     return webSearch(query);
   }
 
   if (process.env.GROQ_API_KEY) {
+    console.warn("[web-search] PERPLEXITY_API_KEY not set, falling back to Groq (no real-time web search)");
     return webSearchWithGroq(query);
   }
 
@@ -174,7 +180,8 @@ function extractTitleFromUrl(url: string): string {
         .join(" ");
     }
     return urlObj.hostname;
-  } catch {
+  } catch (error) {
+    console.warn(`[web-search] Failed to extract title from URL: ${url}`, error);
     return url;
   }
 }
@@ -183,7 +190,8 @@ function extractDomainFromUrl(url: string): string {
   try {
     const urlObj = new URL(url);
     return urlObj.hostname.replace(/^www\./, "");
-  } catch {
+  } catch (error) {
+    console.warn(`[web-search] Failed to extract domain from URL: ${url}`, error);
     return "unknown";
   }
 }
