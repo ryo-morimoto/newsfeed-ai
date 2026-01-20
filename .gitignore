@@ -1,3 +1,6 @@
+# Worktrees
+.worktrees/
+
 node_modules/
 data/*.db
 data/*.log
