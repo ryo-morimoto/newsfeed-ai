@@ -1,3 +1,6 @@
+import 'virtual:uno.css'
+import '~/styles/base.css'
+import '~/styles/animations.css'
 import {
   createRootRoute,
   Outlet,
