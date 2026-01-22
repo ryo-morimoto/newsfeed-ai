@@ -4,7 +4,7 @@ import { fetchHackerNews } from "./sources/hackernews";
 import { fetchGitHubTrending } from "./sources/github-trending";
 import { filterArticles, type ArticleToFilter } from "./filter";
 import { summarizeArticles } from "./summarize/summarize";
-import { generateDetailedSummary } from "./summarize/detailed-summary";
+import { generateDetailedSummary, fetchArticleContent } from "./summarize/detailed-summary";
 import { sendToDiscord, type NotifyArticle } from "./discord/notify";
 import { createDigestEmbed, createCategoryEmbeds, sendEmbedsToDiscord, type DiscordEmbed } from "./discord/discord-embed";
 import {
@@ -24,6 +24,62 @@ const EMBED_FORMAT = process.env.EMBED_FORMAT || "text"; // text, digest, catego
 export interface NewsfeedResult {
   articles: NotifyArticle[];
   embeds: DiscordEmbed[];
+}
+
+/**
+ * Check if article has substantial content (>50 chars, not just HN metadata)
+ */
+function hasSubstantialContent(content?: string): boolean {
+  if (!content || content.trim().length < 50) return false;
+  if (content.match(/^HN Score:\s*\d+点(、\d+コメント)?$/)) return false;
+  return true;
+}
+
+/**
+ * Fetch content for articles that lack substantial content
+ */
+async function enrichArticleContent(
+  articles: ArticleToFilter[]
+): Promise<ArticleToFilter[]> {
+  const needsContent = articles.filter(a => !hasSubstantialContent(a.content));
+
+  if (needsContent.length === 0) {
+    console.log("  All articles have substantial content");
+    return articles;
+  }
+
+  console.log(`  Fetching content for ${needsContent.length} articles...`);
+
+  // Fetch content in parallel with concurrency limit
+  const CONCURRENCY = 5;
+  const results = new Map<string, string>();
+
+  for (let i = 0; i < needsContent.length; i += CONCURRENCY) {
+    const batch = needsContent.slice(i, i + CONCURRENCY);
+    const promises = batch.map(async (article) => {
+      try {
+        const content = await fetchArticleContent(article.url);
+        if (content && content.length > 50) {
+          results.set(article.url, content);
+          console.log(`    ✓ ${article.title.slice(0, 40)}... (${content.length} chars)`);
+        } else {
+          console.log(`    ✗ ${article.title.slice(0, 40)}... (no content)`);
+        }
+      } catch (error) {
+        console.log(`    ✗ ${article.title.slice(0, 40)}... (fetch error)`);
+      }
+    });
+    await Promise.all(promises);
+  }
+
+  // Merge fetched content with original articles
+  return articles.map(article => {
+    const fetchedContent = results.get(article.url);
+    if (fetchedContent) {
+      return { ...article, content: fetchedContent };
+    }
+    return article;
+  });
 }
 
 /**
@@ -133,9 +189,13 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
   const topArticles = filtered.slice(0, MAX_ARTICLES);
   console.log(`  Top ${topArticles.length} selected`);
 
+  // Fetch content for articles lacking substantial content
+  console.log("\n📥 Fetching article content...");
+  const articlesWithContent = await enrichArticleContent(topArticles);
+
   // Summarize
   console.log("\n✍️ Summarizing...");
-  const summarized = await summarizeArticles(topArticles, GROQ_API_KEY);
+  const summarized = await summarizeArticles(articlesWithContent, GROQ_API_KEY);
 
   // Generate detailed summaries for selected articles
   console.log("\n📝 Generating detailed summaries...");

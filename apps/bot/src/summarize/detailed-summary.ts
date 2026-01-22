@@ -18,7 +18,7 @@ export interface DetailedSummaryResult {
 /**
  * URLからコンテンツを取得する
  */
-async function fetchArticleContent(url: string): Promise<string> {
+export async function fetchArticleContent(url: string): Promise<string> {
   try {
     const response = await fetch(url, {
       headers: {
