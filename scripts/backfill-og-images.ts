@@ -6,7 +6,7 @@
  * Usage: bun scripts/backfill-og-images.ts
  */
 
-import { db } from "../packages/core/src/db";
+import { ensureDb, getDb } from "../packages/core/src/db";
 import { fetchArticleContentWithOgImage } from "../apps/bot/src/summarize/detailed-summary";
 
 const CONCURRENCY = 3; // Limit concurrent requests
@@ -18,7 +18,7 @@ interface ArticleToBackfill {
 }
 
 async function getArticlesWithoutOgImage(): Promise<ArticleToBackfill[]> {
-  const client = await db.getDb();
+  const client = await getDb();
   const result = await client.execute(`
     SELECT url, title FROM articles
     WHERE og_image IS NULL
@@ -28,7 +28,7 @@ async function getArticlesWithoutOgImage(): Promise<ArticleToBackfill[]> {
 }
 
 async function updateOgImage(url: string, ogImage: string): Promise<void> {
-  const client = await db.getDb();
+  const client = await getDb();
   await client.execute({
     sql: "UPDATE articles SET og_image = ? WHERE url = ?",
     args: [ogImage, url],
@@ -43,7 +43,7 @@ async function main() {
   console.log("🖼️  OG Image Backfill Script\n");
 
   // Initialize database
-  await db.ensureDb({
+  await ensureDb({
     dbPath: process.env.DB_PATH,
   });
 
