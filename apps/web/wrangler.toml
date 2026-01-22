@@ -8,6 +8,7 @@ main = "@tanstack/react-start/server-entry"
 # Environment variables are set via Cloudflare Dashboard or wrangler secret
 
 # Production environment
-# Custom domain can be added later via Cloudflare Dashboard:
-# Workers & Pages → newsfeed-ai-web → Settings → Triggers → Custom Domains
 [env.production]
+routes = [
+  { pattern = "newsfeed-ai.ryo-o.dev", custom_domain = true }
+]
