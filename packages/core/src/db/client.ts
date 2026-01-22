@@ -86,6 +86,15 @@ export async function ensureDb(config: DbConfig = {}): Promise<Client> {
     `CREATE INDEX IF NOT EXISTS idx_pending ON pending_task_notifications(notified_at)`
   );
 
+  // Search index table for Orama persistence (used by Workers)
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS search_index (
+      id TEXT PRIMARY KEY DEFAULT 'default',
+      data BLOB NOT NULL,
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   // Migration: Add new columns to existing tables (ignore errors if columns exist)
   const migrations = [
     "ALTER TABLE articles ADD COLUMN detailed_summary TEXT",

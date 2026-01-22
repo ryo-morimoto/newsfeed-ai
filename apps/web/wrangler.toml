@@ -1,0 +1,14 @@
+# apps/web/wrangler.toml
+name = "newsfeed-ai-web"
+compatibility_date = "2026-01-22"
+compatibility_flags = ["nodejs_compat"]
+
+main = "@tanstack/react-start/server-entry"
+
+# Environment variables are set via Cloudflare Dashboard or wrangler secret
+
+# Production environment
+[env.production]
+routes = [
+  { pattern = "newsfeed.ryo-o.dev", custom_domain = true }
+]

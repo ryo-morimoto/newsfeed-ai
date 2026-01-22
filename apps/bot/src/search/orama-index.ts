@@ -2,7 +2,7 @@
  * Search index initialization for bot app
  * Provides Bun-specific initialization with TensorFlow.js embeddings
  */
-import { search, paths } from "@newsfeed-ai/core";
+import { search, paths, db } from "@newsfeed-ai/core";
 import { bunFileSystem } from "../adapters/fs";
 
 // Embeddings plugin (created lazily)
@@ -65,6 +65,23 @@ export async function rebuildIndexFromSQLite(
 ): Promise<void> {
   const plugin = await createEmbeddingsPlugin();
   await search.rebuildIndexFromSQLite(getAllArticles, plugin);
+}
+
+/**
+ * Persist the search index to file and Turso database
+ * File persistence is for local development, Turso is for Workers
+ */
+export async function persistSearchIndex(): Promise<void> {
+  // Persist to file (existing behavior)
+  await search.persistIndex(getSearchConfig());
+
+  // Also persist to Turso for Workers
+  try {
+    const client = await db.getDb();
+    await search.persistIndexToDb(client);
+  } catch (error) {
+    console.warn("[search] Could not persist to Turso (might be using local SQLite):", error);
+  }
 }
 
 /**

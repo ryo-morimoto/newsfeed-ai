@@ -18,6 +18,8 @@ export {
   deletePersistedIndex,
   searchIndex,
   resetSearchIndex,
+  persistIndexToDb,
+  restoreIndexFromDb,
 } from "./orama";
 
 // Search service (higher level)

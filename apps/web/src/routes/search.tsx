@@ -4,7 +4,7 @@ import { performSearch } from '~/lib/server-fns'
 import { ArticleCard } from '~/components/ArticleCard'
 import type { SearchResult } from '~/lib/search'
 
-interface SearchParams {
+export interface SearchParams {
   q?: string
 }
 

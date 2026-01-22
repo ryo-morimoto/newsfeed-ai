@@ -5,7 +5,6 @@ import { getCategoryColor } from '~/lib/category'
 export const Route = createFileRoute('/article/$url')({
   loader: async ({ params }) => {
     const url = decodeURIComponent(params.url)
-    // @ts-expect-error TanStack Start typing issue
     const article = await fetchArticle({ data: url })
     if (!article) {
       throw notFound()

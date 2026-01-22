@@ -14,27 +14,25 @@ export const fetchArticles = createServerFn({ method: "GET" }).handler(
   }
 );
 
-export const fetchArticle = createServerFn({ method: "GET" }).handler(
-  async (ctx): Promise<Article | null> => {
+export const fetchArticle = createServerFn({ method: "GET" })
+  .inputValidator((data: string) => data)
+  .handler(async ({ data }): Promise<Article | null> => {
     await ensureInitialized();
-    const url = ctx.data as unknown as string;
-    return await getArticleByUrl(url);
-  }
-);
+    return await getArticleByUrl(data);
+  });
 
-export const performSearch = createServerFn({ method: "GET" }).handler(
-  async (ctx): Promise<SearchResult[]> => {
-    const query = ctx.data as unknown as string;
-    if (!query || query.trim().length === 0) {
+export const performSearch = createServerFn({ method: "GET" })
+  .inputValidator((data: string) => data)
+  .handler(async ({ data }): Promise<SearchResult[]> => {
+    if (!data || data.trim().length === 0) {
       return [];
     }
 
     try {
       // searchArticles handles fallback internally
-      return await searchArticles(query, 20);
+      return await searchArticles(data, 20);
     } catch (error) {
       console.error("[server-fns] Search error:", error);
       return [];
     }
-  }
-);
+  });

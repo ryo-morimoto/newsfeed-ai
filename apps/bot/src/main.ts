@@ -12,6 +12,7 @@ import {
   getHackerNewsSource,
   getGitHubTrendingSource,
 } from "./config";
+import { persistSearchIndex } from "./search/orama-index";
 
 // Environment variables
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
@@ -266,6 +267,15 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
       category: article.category,
       notified: false,
     });
+  }
+
+  // Persist search index to Turso for Workers
+  console.log("\n🔍 Persisting search index...");
+  try {
+    await persistSearchIndex();
+    console.log("  Search index saved to Turso for Workers");
+  } catch (error) {
+    console.warn("  Failed to persist search index:", error);
   }
 
   // Create embeds

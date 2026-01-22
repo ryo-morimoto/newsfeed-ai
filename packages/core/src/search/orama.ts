@@ -230,3 +230,66 @@ export function resetSearchIndex(): void {
   initPromise = null;
   currentConfig = null;
 }
+
+/** Database interface compatible with @libsql/client */
+type DbClient = {
+  execute: (stmt: { sql: string; args?: (string | number | Uint8Array | null)[] }) => Promise<{ rows: Record<string, unknown>[] }>;
+};
+
+/**
+ * Persist the search index to database (Turso)
+ */
+export async function persistIndexToDb(
+  db: DbClient,
+  indexId: string = "default"
+): Promise<void> {
+  if (!oramaDb) {
+    console.warn("[search] No index to persist to db");
+    return;
+  }
+
+  try {
+    const data = await persist(oramaDb, "binary");
+    await db.execute({
+      sql: `INSERT OR REPLACE INTO search_index (id, data, updated_at)
+            VALUES (?, ?, datetime('now'))`,
+      args: [indexId, new Uint8Array(data as ArrayBuffer)],
+    });
+    console.log(`[search] Index persisted to database with id: ${indexId}`);
+  } catch (error) {
+    console.error("[search] Failed to persist index to db:", error);
+  }
+}
+
+/**
+ * Restore the search index from database (Turso)
+ */
+export async function restoreIndexFromDb(
+  db: DbClient,
+  indexId: string = "default"
+): Promise<boolean> {
+  try {
+    const result = await db.execute({
+      sql: "SELECT data FROM search_index WHERE id = ?",
+      args: [indexId],
+    });
+
+    const row = result.rows[0];
+    if (!row) {
+      console.log("[search] No index found in database");
+      return false;
+    }
+
+    const data = row.data;
+    // Convert to ArrayBuffer - handle both ArrayBuffer and Uint8Array from Turso
+    const buffer = data instanceof ArrayBuffer
+      ? data
+      : new Uint8Array(data as Uint8Array).buffer.slice(0) as ArrayBuffer;
+    oramaDb = (await restore("binary", buffer)) as OramaDb;
+    console.log("[search] Index restored from database");
+    return true;
+  } catch (error) {
+    console.error("[search] Failed to restore index from db:", error);
+    return false;
+  }
+}
