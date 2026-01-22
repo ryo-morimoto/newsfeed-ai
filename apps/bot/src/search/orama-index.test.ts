@@ -224,8 +224,8 @@ describe("Orama Search Index (Fulltext)", () => {
     const doc = results.hits[0].document;
     expect(doc.url).toBe(mockArticles[0].url);
     expect(doc.title).toBe(mockArticles[0].title);
-    expect(doc.summary).toBe(mockArticles[0].summary);
-    expect(doc.detailed_summary).toBe(mockArticles[0].detailed_summary);
+    expect(doc.summary).toBe(mockArticles[0].summary!);
+    expect(doc.detailed_summary).toBe(mockArticles[0].detailed_summary!);
     expect(doc.category).toBe(mockArticles[0].category);
     expect(doc.source).toBe(mockArticles[0].source);
   });

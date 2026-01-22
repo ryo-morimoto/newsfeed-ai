@@ -33,39 +33,41 @@ export interface Config {
 
 let config: Config | null = null;
 
-import { readFileSync } from "fs";
-
-export function loadConfig(): Config {
+export async function loadConfig(): Promise<Config> {
   if (config) return config;
 
-  const content = readFileSync(paths.sourcesConfig, "utf-8");
+  const content = await Bun.file(paths.sourcesConfig).text();
   config = Bun.YAML.parse(content) as Config;
   return config;
 }
 
-export function getRssSources(): RssSource[] {
-  return loadConfig().sources.filter(
+export async function getRssSources(): Promise<RssSource[]> {
+  const cfg = await loadConfig();
+  return cfg.sources.filter(
     (s): s is RssSource => s.type === "rss" && s.enabled
   );
 }
 
-export function getHackerNewsSource(): HackerNewsSource | undefined {
-  return loadConfig().sources.find(
+export async function getHackerNewsSource(): Promise<HackerNewsSource | undefined> {
+  const cfg = await loadConfig();
+  return cfg.sources.find(
     (s): s is HackerNewsSource => s.type === "hackernews" && s.enabled
   );
 }
 
-export function getGitHubTrendingSource(): GitHubTrendingSource | undefined {
-  return loadConfig().sources.find(
+export async function getGitHubTrendingSource(): Promise<GitHubTrendingSource | undefined> {
+  const cfg = await loadConfig();
+  return cfg.sources.find(
     (s): s is GitHubTrendingSource => s.type === "github-trending" && s.enabled
   );
 }
 
-export function getInterests(): string[] {
-  return loadConfig().interests;
+export async function getInterests(): Promise<string[]> {
+  const cfg = await loadConfig();
+  return cfg.interests;
 }
 
-export function getCategoryEmoji(category: string): string {
-  const categories = loadConfig().categories;
-  return categories[category] || `📌 ${category}`;
+export async function getCategoryEmoji(category: string): Promise<string> {
+  const cfg = await loadConfig();
+  return cfg.categories[category] || `📌 ${category}`;
 }

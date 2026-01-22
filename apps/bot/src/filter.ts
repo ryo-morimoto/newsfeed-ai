@@ -48,8 +48,9 @@ function calculateFreshnessFactor(published?: Date): number {
   return factor;
 }
 
-function getInterestsPrompt(): string {
-  return getInterests().map((i) => `- ${i}`).join("\n");
+async function getInterestsPrompt(): Promise<string> {
+  const interests = await getInterests();
+  return interests.map((i) => `- ${i}`).join("\n");
 }
 
 export async function filterArticles(
@@ -66,12 +67,13 @@ export async function filterArticles(
   // Batch articles - smaller batches to stay under rate limit
   const batchSize = 10;
   const results: FilteredArticle[] = [];
+  const interestsPrompt = await getInterestsPrompt();
 
   for (let i = 0; i < articles.length; i += batchSize) {
     const batch = articles.slice(i, i + batchSize);
 
     const prompt = `You are filtering news articles for a developer. Score each article 0-1 based on relevance to these interests:
-${getInterestsPrompt()}
+${interestsPrompt}
 
 Articles to evaluate:
 ${batch.map((a, idx) => `[${idx}] ${a.title} (${a.source}) - ${a.content?.slice(0, 200) || "no description"}`).join("\n")}

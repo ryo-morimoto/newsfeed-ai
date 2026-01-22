@@ -35,44 +35,44 @@ const sampleArticles: NotifyArticle[] = [
 ];
 
 describe("createCategoryEmbeds", () => {
-  test("groups articles by category", () => {
-    const embeds = createCategoryEmbeds(sampleArticles);
-    
+  test("groups articles by category", async () => {
+    const embeds = await createCategoryEmbeds(sampleArticles);
+
     // Should have header + one embed per category
     expect(embeds.length).toBe(4); // header + ai + frontend + tech-jp
   });
 
-  test("header embed has correct structure", () => {
-    const embeds = createCategoryEmbeds(sampleArticles);
+  test("header embed has correct structure", async () => {
+    const embeds = await createCategoryEmbeds(sampleArticles);
     const header = embeds[0];
-    
+
     expect(header.title).toBe("📰 Tech Digest");
     expect(header.description).toContain("3件");
     expect(header.color).toBe(0x5865f2);
   });
 
-  test("category embeds have correct colors", () => {
-    const embeds = createCategoryEmbeds(sampleArticles);
-    
+  test("category embeds have correct colors", async () => {
+    const embeds = await createCategoryEmbeds(sampleArticles);
+
     // Find AI category embed
     const aiEmbed = embeds.find(e => e.title?.includes("AI") || e.description?.includes("ai-model"));
     expect(aiEmbed).toBeDefined();
     expect(aiEmbed?.color).toBe(0x8b5cf6); // Purple for AI
   });
 
-  test("handles empty array", () => {
-    const embeds = createCategoryEmbeds([]);
-    
+  test("handles empty array", async () => {
+    const embeds = await createCategoryEmbeds([]);
+
     // Should still have header
     expect(embeds.length).toBe(1);
     expect(embeds[0].description).toContain("0件");
   });
 
-  test("includes article URLs in description", () => {
-    const embeds = createCategoryEmbeds(sampleArticles);
-    
+  test("includes article URLs in description", async () => {
+    const embeds = await createCategoryEmbeds(sampleArticles);
+
     // Find an embed with article content
-    const hasUrls = embeds.some(e => 
+    const hasUrls = embeds.some(e =>
       e.description?.includes("https://example.com")
     );
     expect(hasUrls).toBe(true);
@@ -80,14 +80,14 @@ describe("createCategoryEmbeds", () => {
 });
 
 describe("createArticleEmbeds", () => {
-  test("creates one embed per article", () => {
-    const embeds = createArticleEmbeds(sampleArticles);
-    
+  test("creates one embed per article", async () => {
+    const embeds = await createArticleEmbeds(sampleArticles);
+
     expect(embeds.length).toBe(sampleArticles.length);
   });
 
-  test("embed has correct structure", () => {
-    const embeds = createArticleEmbeds(sampleArticles);
+  test("embed has correct structure", async () => {
+    const embeds = await createArticleEmbeds(sampleArticles);
     const firstEmbed = embeds[0];
 
     expect(firstEmbed.title).toBe("New AI Model Released");
@@ -97,7 +97,7 @@ describe("createArticleEmbeds", () => {
     expect(firstEmbed.footer?.text).toContain("Tech News");
   });
 
-  test("truncates long titles to 256 chars", () => {
+  test("truncates long titles to 256 chars", async () => {
     const longTitle = "A".repeat(300);
     const articles: NotifyArticle[] = [{
       title: longTitle,
@@ -106,12 +106,12 @@ describe("createArticleEmbeds", () => {
       category: "tech",
       source: "Test",
     }];
-    
-    const embeds = createArticleEmbeds(articles);
+
+    const embeds = await createArticleEmbeds(articles);
     expect(embeds[0].title?.length).toBe(256);
   });
 
-  test("handles undefined summary", () => {
+  test("handles undefined summary", async () => {
     const articles: NotifyArticle[] = [{
       title: "No Summary",
       url: "https://example.com",
@@ -120,42 +120,42 @@ describe("createArticleEmbeds", () => {
       source: "Test",
     }];
 
-    const embeds = createArticleEmbeds(articles);
+    const embeds = await createArticleEmbeds(articles);
     // Without ARTICLE_SERVER_URL env, description is undefined for empty summary
     expect(embeds[0].description).toBeUndefined();
   });
 });
 
 describe("createDigestEmbed", () => {
-  test("creates single digest embed", () => {
-    const embeds = createDigestEmbed(sampleArticles);
-    
+  test("creates single digest embed", async () => {
+    const embeds = await createDigestEmbed(sampleArticles);
+
     expect(embeds.length).toBe(1);
   });
 
-  test("digest has fields for each category", () => {
-    const embeds = createDigestEmbed(sampleArticles);
+  test("digest has fields for each category", async () => {
+    const embeds = await createDigestEmbed(sampleArticles);
     const digest = embeds[0];
-    
+
     expect(digest.fields).toBeDefined();
     expect(digest.fields?.length).toBe(3); // ai, frontend, tech-jp
   });
 
-  test("includes article count", () => {
-    const embeds = createDigestEmbed(sampleArticles);
+  test("includes article count", async () => {
+    const embeds = await createDigestEmbed(sampleArticles);
     const digest = embeds[0];
-    
+
     expect(digest.description).toContain("3 articles");
   });
 
-  test("has timestamp", () => {
-    const embeds = createDigestEmbed(sampleArticles);
+  test("has timestamp", async () => {
+    const embeds = await createDigestEmbed(sampleArticles);
     const digest = embeds[0];
-    
+
     expect(digest.timestamp).toBeDefined();
   });
 
-  test("truncates long summaries in fields", () => {
+  test("truncates long summaries in fields", async () => {
     const longSummary = "A".repeat(100);
     const articles: NotifyArticle[] = [{
       title: "Test",
@@ -165,7 +165,7 @@ describe("createDigestEmbed", () => {
       source: "Test",
     }];
 
-    const embeds = createDigestEmbed(articles);
+    const embeds = await createDigestEmbed(articles);
     const field = embeds[0].fields?.[0];
 
     // Summary text should be truncated to ~50 chars + "..."

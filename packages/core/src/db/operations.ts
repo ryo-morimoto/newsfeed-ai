@@ -1,5 +1,6 @@
 import { getDb } from "./client";
-import type { Article, PendingTaskNotification } from "./types";
+import type { Article, ArticleRow, PendingTaskNotification } from "./types";
+import { rowToArticle } from "./types";
 
 // === Article operations ===
 
@@ -57,7 +58,7 @@ export async function getRecentArticles(hours: number = 24): Promise<Article[]> 
     `,
     args: [hours],
   });
-  return result.rows as unknown as Article[];
+  return (result.rows as unknown as ArticleRow[]).map(rowToArticle);
 }
 
 export async function getArticlesWithDetailedSummary(limit: number = 50): Promise<Article[]> {
@@ -71,7 +72,7 @@ export async function getArticlesWithDetailedSummary(limit: number = 50): Promis
     `,
     args: [limit],
   });
-  return result.rows as unknown as Article[];
+  return (result.rows as unknown as ArticleRow[]).map(rowToArticle);
 }
 
 export async function getArticleByUrl(url: string): Promise<Article | null> {
@@ -80,7 +81,8 @@ export async function getArticleByUrl(url: string): Promise<Article | null> {
     sql: "SELECT * FROM articles WHERE url = ?",
     args: [url],
   });
-  return (result.rows[0] as unknown as Article) || null;
+  const row = result.rows[0] as unknown as ArticleRow | undefined;
+  return row ? rowToArticle(row) : null;
 }
 
 /**
@@ -92,7 +94,7 @@ export async function getAllArticlesForIndexing(): Promise<Article[]> {
     SELECT * FROM articles
     ORDER BY created_at DESC
   `);
-  return result.rows as unknown as Article[];
+  return (result.rows as unknown as ArticleRow[]).map(rowToArticle);
 }
 
 export async function updateArticleDetailedSummary(

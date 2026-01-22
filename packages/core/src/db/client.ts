@@ -96,8 +96,13 @@ export async function ensureDb(config: DbConfig = {}): Promise<Client> {
   for (const sql of migrations) {
     try {
       await client.execute(sql);
-    } catch {
-      // Column already exists, ignore
+    } catch (error) {
+      // Only ignore "duplicate column" errors, re-throw others
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes("duplicate column") && !message.includes("already exists")) {
+        console.error(`[db] Migration failed: ${sql}`, error);
+        throw error;
+      }
     }
   }
 

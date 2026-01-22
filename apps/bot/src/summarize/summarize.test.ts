@@ -60,7 +60,7 @@ describe("summarizeArticles", () => {
     const fetchMock = mock(async () => {
       throw new Error("Should not be called");
     });
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const result = await summarizeArticles(japaneseOnly, "test-api-key");
     
@@ -80,7 +80,7 @@ describe("summarizeArticles", () => {
           }
         }]
       }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await summarizeArticles(sampleArticles, "test-api-key");
     
@@ -97,7 +97,7 @@ describe("summarizeArticles", () => {
   test("handles API error gracefully with title fallback", async () => {
     globalThis.fetch = mock(async () => {
       return new Response("Error", { status: 500 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await summarizeArticles(sampleArticles, "test-api-key");
 
@@ -121,7 +121,7 @@ describe("summarizeArticles", () => {
           }
         }]
       }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await summarizeArticles(sampleArticles, "test-api-key");
 
@@ -147,7 +147,7 @@ describe("summarizeArticles", () => {
           }
         }]
       }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const articles: ArticleToSummarize[] = [{
       title: "Test Title",
@@ -180,7 +180,7 @@ describe("summarizeArticles", () => {
         }]
       })
     }));
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const titleOnlyArticles: ArticleToSummarize[] = [{
       title: "Short Content Article",
@@ -208,7 +208,7 @@ describe("summarizeArticles", () => {
         }]
       })
     }));
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const hnArticle: ArticleToSummarize[] = [{
       title: "HN Popular Article",
@@ -236,7 +236,7 @@ describe("summarizeArticles", () => {
         }]
       })
     }));
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const hnArticle: ArticleToSummarize[] = [{
       title: "HN Low Score Article",
@@ -263,7 +263,7 @@ describe("summarizeArticles", () => {
           }
         }]
       }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const articles: ArticleToSummarize[] = [{
       title: "Interesting Tech Article",

@@ -41,7 +41,7 @@ const mockArticles = [
     category: "Programming",
     summary: "Learn advanced TypeScript patterns for better code",
     detailed_summary: "Deep dive into generics, conditional types, and mapped types in TypeScript",
-    notified: 0,
+    notified: false,
   },
   {
     url: "https://example.com/react-server-components",
@@ -50,7 +50,7 @@ const mockArticles = [
     category: "Frontend",
     summary: "A guide to React Server Components",
     detailed_summary: "RSC allows rendering components on the server for better performance and SEO",
-    notified: 0,
+    notified: false,
   },
   {
     url: "https://example.com/ai-transformers",
@@ -59,7 +59,7 @@ const mockArticles = [
     category: "AI",
     summary: "Understanding transformer architecture in AI",
     detailed_summary: "Transformers revolutionized NLP with attention mechanisms and parallel processing",
-    notified: 0,
+    notified: false,
   },
   {
     url: "https://example.com/rust-memory-safety",
@@ -68,7 +68,7 @@ const mockArticles = [
     category: "Programming",
     summary: "How Rust achieves memory safety without garbage collection",
     detailed_summary: "Ownership, borrowing, and lifetimes make Rust memory safe at compile time",
-    notified: 0,
+    notified: false,
   },
 ];
 

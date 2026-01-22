@@ -62,7 +62,7 @@ describe("Source → DB Integration", () => {
           source: "Dev Blog",
           category: "frontend",
           published_at: item.published?.toISOString(),
-          notified: 0,
+          notified: false,
         });
       }
 
@@ -79,7 +79,7 @@ describe("Source → DB Integration", () => {
         title: mockRssItems[0].title,
         source: "Dev Blog",
         category: "frontend",
-        notified: 0,
+        notified: false,
       });
 
       // Check duplicate detection
@@ -94,7 +94,7 @@ describe("Source → DB Integration", () => {
         title: "Old title",
         source: "Dev Blog",
         category: "frontend",
-        notified: 0,
+        notified: false,
       });
 
       // Simulate fetch + filter flow
@@ -114,7 +114,7 @@ describe("Source → DB Integration", () => {
           title: item.title,
           source: "Dev Blog",
           category: "frontend",
-          notified: 0,
+          notified: false,
         });
       }
 
@@ -129,12 +129,14 @@ describe("Source → DB Integration", () => {
         title: "Show HN: My new AI project",
         url: "https://github.com/user/ai-project",
         score: 150,
+        comments: 42,
         published: new Date(),
       },
       {
         title: "Ask HN: Best practices for testing?",
         url: "https://news.ycombinator.com/item?id=12345",
         score: 89,
+        comments: 23,
         published: new Date(),
       },
     ];
@@ -148,7 +150,7 @@ describe("Source → DB Integration", () => {
           category: "tech",
           summary: `Score: ${item.score}`,
           score: item.score / 100, // Normalize to 0-1
-          notified: 0,
+          notified: false,
         });
       }
 
@@ -186,7 +188,7 @@ describe("Source → DB Integration", () => {
           source: `GitHub (${repo.language})`,
           category: "repos",
           summary: `${repo.description} (★${repo.stars} today)`,
-          notified: 0,
+          notified: false,
         });
       }
 
@@ -214,21 +216,21 @@ describe("Source → DB Integration", () => {
           title: "Test",
           source: "Test",
           category: "tech",
-          notified: 0,
+          notified: false,
         });
       }
 
       // Verify all unnotified
       let articles = await getRecentArticles(24);
-      expect(articles.every(a => a.notified === 0)).toBe(true);
+      expect(articles.every(a => a.notified === false)).toBe(true);
 
       // Mark first two as notified
       await markAsNotified(urls.slice(0, 2));
 
       // Verify state
       articles = await getRecentArticles(24);
-      const notifiedCount = articles.filter(a => a.notified === 1).length;
-      const unnotifiedCount = articles.filter(a => a.notified === 0).length;
+      const notifiedCount = articles.filter(a => a.notified === true).length;
+      const unnotifiedCount = articles.filter(a => a.notified === false).length;
 
       expect(notifiedCount).toBe(2);
       expect(unnotifiedCount).toBe(1);
@@ -240,7 +242,7 @@ describe("Source → DB Integration", () => {
         title: "Old Article",
         source: "Test",
         category: "tech",
-        notified: 1,
+        notified: true,
       });
 
       await saveArticle({
@@ -248,7 +250,7 @@ describe("Source → DB Integration", () => {
         title: "New Article",
         source: "Test",
         category: "tech",
-        notified: 0,
+        notified: false,
       });
 
       const articles = await getRecentArticles(24);

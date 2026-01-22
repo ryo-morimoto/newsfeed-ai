@@ -1,5 +1,6 @@
 // Types
-export type { Article, PendingTaskNotification, DbConfig } from "./types";
+export type { Article, ArticleRow, PendingTaskNotification, DbConfig } from "./types";
+export { rowToArticle } from "./types";
 
 // Client
 export { ensureDb, getDb, closeDb } from "./client";

@@ -58,7 +58,7 @@ function formatRelativeDate(date?: Date): string {
 /**
  * Create a single embed per category with multiple articles
  */
-export function createCategoryEmbeds(articles: NotifyArticle[]): DiscordEmbed[] {
+export async function createCategoryEmbeds(articles: NotifyArticle[]): Promise<DiscordEmbed[]> {
   // Group by category
   const grouped = articles.reduce(
     (acc, article) => {
@@ -90,7 +90,7 @@ export function createCategoryEmbeds(articles: NotifyArticle[]): DiscordEmbed[] 
   });
 
   for (const [category, items] of Object.entries(grouped)) {
-    const emoji = getCategoryEmoji(category);
+    const emoji = await getCategoryEmoji(category);
     const color = categoryColors[category] || 0x6b7280;
 
     // Build description with article list
@@ -119,10 +119,11 @@ export function createCategoryEmbeds(articles: NotifyArticle[]): DiscordEmbed[] 
 /**
  * Create individual embeds for each article (more detailed view)
  */
-export function createArticleEmbeds(articles: NotifyArticle[]): DiscordEmbed[] {
-  return articles.map((article) => {
+export async function createArticleEmbeds(articles: NotifyArticle[]): Promise<DiscordEmbed[]> {
+  const embeds: DiscordEmbed[] = [];
+  for (const article of articles) {
     const color = categoryColors[article.category] || 0x6b7280;
-    const emoji = getCategoryEmoji(article.category);
+    const emoji = await getCategoryEmoji(article.category);
     const detailUrl = getArticleDetailUrl(article.url);
 
     // Add detail link to description if available
@@ -135,7 +136,7 @@ export function createArticleEmbeds(articles: NotifyArticle[]): DiscordEmbed[] {
       description = `[詳細要旨を見る](${detailUrl})`;
     }
 
-    return {
+    embeds.push({
       title: article.title.slice(0, 256), // Discord limit
       url: article.url,
       description,
@@ -143,14 +144,15 @@ export function createArticleEmbeds(articles: NotifyArticle[]): DiscordEmbed[] {
       footer: {
         text: `${emoji} • ${article.source}`,
       },
-    };
-  });
+    });
+  }
+  return embeds;
 }
 
 /**
  * Create a compact daily digest embed
  */
-export function createDigestEmbed(articles: NotifyArticle[]): DiscordEmbed[] {
+export async function createDigestEmbed(articles: NotifyArticle[]): Promise<DiscordEmbed[]> {
   const today = new Date().toISOString().split("T")[0];
 
   // Group by category
@@ -167,9 +169,9 @@ export function createDigestEmbed(articles: NotifyArticle[]): DiscordEmbed[] {
   const fields: DiscordEmbed["fields"] = [];
 
   for (const [category, items] of Object.entries(grouped)) {
-    const emoji = getCategoryEmoji(category);
+    const emoji = await getCategoryEmoji(category);
     let value = "";
-    
+
     for (const item of items.slice(0, 3)) {
       const isJapanese = category === "tech-jp";
       const displayText = isJapanese ? item.title : (item.summary || item.title);

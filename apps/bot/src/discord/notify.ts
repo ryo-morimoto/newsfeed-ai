@@ -41,7 +41,7 @@ export async function sendToDiscord(
   let content = `📰 **Today's Tech Digest** (${today})\n\n`;
 
   for (const [category, items] of Object.entries(grouped)) {
-    const emoji = getCategoryEmoji(category);
+    const emoji = await getCategoryEmoji(category);
     content += `**${emoji}**\n`;
 
     for (const item of items.slice(0, 5)) {

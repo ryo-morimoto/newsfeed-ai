@@ -53,7 +53,7 @@ describe("Database Operations", () => {
         title: "Test Article",
         source: "Test",
         category: "tech",
-        notified: 0,
+        notified: false,
       });
 
       expect(await isArticleSeen("https://seen-article.com")).toBe(true);
@@ -67,7 +67,7 @@ describe("Database Operations", () => {
         title: "Test Article",
         source: "Test Source",
         category: "tech",
-        notified: 0,
+        notified: false,
       });
 
       expect(result.rowsAffected).toBe(1);
@@ -82,7 +82,7 @@ describe("Database Operations", () => {
         summary: "要約テスト",
         score: 0.85,
         published_at: "2024-01-15",
-        notified: 1,
+        notified: true,
       });
 
       expect(await isArticleSeen("https://example.com/article2")).toBe(true);
@@ -94,7 +94,7 @@ describe("Database Operations", () => {
         title: "Original",
         source: "Test",
         category: "tech",
-        notified: 0,
+        notified: false,
       });
 
       const result = await saveArticle({
@@ -102,7 +102,7 @@ describe("Database Operations", () => {
         title: "Duplicate",
         source: "Test",
         category: "tech",
-        notified: 0,
+        notified: false,
       });
 
       // INSERT OR IGNORE should not change anything
@@ -117,7 +117,7 @@ describe("Database Operations", () => {
         title: "To Notify",
         source: "Test",
         category: "tech",
-        notified: 0,
+        notified: false,
       });
 
       await markAsNotified(["https://example.com/notify1"]);
@@ -125,7 +125,7 @@ describe("Database Operations", () => {
       // Verify via getRecentArticles
       const articles = await getRecentArticles(1);
       const found = articles.find(a => a.url === "https://example.com/notify1");
-      expect(found?.notified).toBe(1);
+      expect(found?.notified).toBe(true);
     });
 
     test("marks multiple articles as notified", async () => {
@@ -141,14 +141,14 @@ describe("Database Operations", () => {
           title: "Test",
           source: "Test",
           category: "tech",
-          notified: 0,
+          notified: false,
         });
       }
 
       await markAsNotified(urls);
 
       const articles = await getRecentArticles(1);
-      const notifiedCount = articles.filter(a => a.notified === 1).length;
+      const notifiedCount = articles.filter(a => a.notified === true).length;
       expect(notifiedCount).toBe(3);
     });
 
@@ -165,7 +165,7 @@ describe("Database Operations", () => {
         title: "Recent Article",
         source: "Test",
         category: "tech",
-        notified: 0,
+        notified: false,
       });
 
       const recent = await getRecentArticles(24);

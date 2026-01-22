@@ -8,9 +8,9 @@ let cachedProjectRoot: string | null = null;
  */
 function findProjectRoot(startDir: string): string | null {
   let dir = startDir;
-  const root = dirname(dir);
 
-  while (dir !== root) {
+  // Loop until we reach the filesystem root (where dirname returns the same value)
+  while (dir !== dirname(dir)) {
     const pkgPath = join(dir, "package.json");
     if (existsSync(pkgPath)) {
       try {
@@ -18,8 +18,10 @@ function findProjectRoot(startDir: string): string | null {
         if (pkg.workspaces) {
           return dir;
         }
-      } catch {
-        // Continue searching
+      } catch (error) {
+        // Log parse errors but continue searching parent directories
+        const message = error instanceof Error ? error.message : String(error);
+        console.debug(`[paths] Could not parse ${pkgPath}: ${message}`);
       }
     }
     dir = dirname(dir);
@@ -53,7 +55,9 @@ export function getProjectRoot(): string {
     return detected;
   }
 
-  // Fallback to cwd
+  // Fallback to cwd - warn as this may indicate misconfiguration
+  console.warn("[paths] Could not detect monorepo root, falling back to cwd:", process.cwd());
+  console.warn("[paths] Set PROJECT_ROOT environment variable for explicit configuration.");
   cachedProjectRoot = process.cwd();
   return cachedProjectRoot;
 }

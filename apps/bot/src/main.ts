@@ -40,7 +40,7 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
   const allArticles: ArticleToFilter[] = [];
 
   // Fetch Hacker News (top stories only)
-  const hnSource = getHackerNewsSource();
+  const hnSource = await getHackerNewsSource();
   if (hnSource) {
     console.log(`\n📡 Fetching ${hnSource.name}...`);
     const hnItems = await fetchHackerNews(30);
@@ -70,7 +70,7 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
   }
 
   // Fetch RSS feeds (limit per source)
-  for (const source of getRssSources()) {
+  for (const source of await getRssSources()) {
     console.log(`📡 Fetching ${source.name}...`);
     const items = await fetchRss(source.url);
     console.log(`  Found ${items.length} items`);
@@ -94,7 +94,7 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
   }
 
   // Fetch GitHub Trending
-  const ghSource = getGitHubTrendingSource();
+  const ghSource = await getGitHubTrendingSource();
   if (ghSource) {
     console.log(`📡 Fetching ${ghSource.name}...`);
     const repos = await fetchGitHubTrending(ghSource.languages);
@@ -182,16 +182,16 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
       title: article.title,
       source: article.source,
       category: article.category,
-      notified: 0,
+      notified: false,
     });
   }
 
   // Create embeds
   let embeds: DiscordEmbed[];
   if (EMBED_FORMAT === "digest") {
-    embeds = createDigestEmbed(toNotify);
+    embeds = await createDigestEmbed(toNotify);
   } else if (EMBED_FORMAT === "category") {
-    embeds = createCategoryEmbeds(toNotify);
+    embeds = await createCategoryEmbeds(toNotify);
   } else {
     embeds = []; // text format uses sendToDiscord directly
   }

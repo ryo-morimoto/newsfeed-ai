@@ -67,7 +67,7 @@ describe("filterArticles", () => {
           }
         }]
       }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await filterArticles(sampleArticles, "test-api-key");
 
@@ -90,7 +90,7 @@ describe("filterArticles", () => {
           }
         }]
       }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await filterArticles(sampleArticles, "test-api-key");
 
@@ -103,7 +103,7 @@ describe("filterArticles", () => {
   test("handles API error gracefully", async () => {
     globalThis.fetch = mock(async () => {
       return new Response("Internal Server Error", { status: 500 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await filterArticles(sampleArticles, "test-api-key");
 
@@ -124,7 +124,7 @@ describe("filterArticles", () => {
           }
         }]
       }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await filterArticles(sampleArticles, "test-api-key");
     
@@ -135,7 +135,7 @@ describe("filterArticles", () => {
   test("handles network error gracefully", async () => {
     globalThis.fetch = mock(async () => {
       throw new Error("Network error");
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await filterArticles(sampleArticles, "test-api-key");
     
@@ -155,7 +155,7 @@ describe("filterArticles", () => {
           }
         }]
       }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await filterArticles(sampleArticles, "test-api-key");
 
@@ -186,7 +186,7 @@ describe("filterArticles", () => {
           }
         }]
       }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await filterArticles(oldArticles, "test-api-key");
 
@@ -219,7 +219,7 @@ describe("filterArticles", () => {
           }
         }]
       }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await filterArticles(veryOldArticles, "test-api-key");
 
@@ -261,7 +261,7 @@ describe("filterArticles", () => {
           }
         }]
       }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await filterArticles(mixedArticles, "test-api-key");
 

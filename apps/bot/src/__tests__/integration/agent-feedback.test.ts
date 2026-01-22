@@ -12,7 +12,8 @@ import { test, expect, describe, mock, beforeEach } from "bun:test";
  */
 
 // We need to mock the SDK before importing the module
-const mockQuery = mock(() => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockQuery = mock<any>(() => {
   return (async function* () {
     yield { type: "system", subtype: "init", session_id: "test-session" };
   })();

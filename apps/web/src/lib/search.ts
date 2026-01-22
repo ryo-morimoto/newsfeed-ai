@@ -3,8 +3,11 @@
  * Uses @newsfeed-ai/core with Node.js FileSystem adapter
  */
 import { search, paths, type Article } from "@newsfeed-ai/core";
+
+// Re-export SearchResult type for use by server-fns
+export type { SearchResult } from "@newsfeed-ai/core/search";
 import { nodeFileSystem } from "../adapters/fs";
-import { getAllArticles } from "./db";
+import { getAllArticles, ensureInitialized as ensureDbInitialized } from "./db";
 
 // Search configuration using Node.js FileSystem
 const searchConfig: search.SearchConfig = {
@@ -21,6 +24,8 @@ let initialized = false;
 async function ensureInitialized(): Promise<void> {
   if (initialized) return;
 
+  // Ensure database is initialized before search (getAllArticles requires it)
+  await ensureDbInitialized();
   await search.initSearchService(searchConfig, getAllArticles);
   initialized = true;
 }

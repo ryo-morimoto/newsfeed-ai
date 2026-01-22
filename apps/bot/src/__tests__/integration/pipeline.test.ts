@@ -80,7 +80,7 @@ describe("Filter → Summarize Pipeline", () => {
           }]
         }), { status: 200 });
       }
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     // Run filter
     const filtered = await filterArticles(testArticles, "test-key");
@@ -97,7 +97,7 @@ describe("Filter → Summarize Pipeline", () => {
   test("pipeline handles API failure gracefully", async () => {
     globalThis.fetch = mock(async () => {
       return new Response("Service Unavailable", { status: 503 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     // Filter should return all with default score
     const filtered = await filterArticles(testArticles, "test-key");
@@ -165,7 +165,7 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
           }]
         }), { status: 200 });
       }
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     // Simulate source data with substantial content (>50 chars)
     const sourceArticles: ArticleToFilter[] = [{
@@ -195,13 +195,13 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
     }));
 
     // Step 4: Create embeds
-    const embeds = createCategoryEmbeds(toNotify);
+    const embeds = await createCategoryEmbeds(toNotify);
 
     expect(embeds.length).toBeGreaterThan(0);
     expect(embeds[0].title).toBe("📰 Tech Digest");
 
     // Find AI category embed
-    const aiEmbed = embeds.find(e => e.description?.includes("test.com"));
+    const aiEmbed = embeds.find((e) => e.description?.includes("test.com"));
     expect(aiEmbed).toBeDefined();
   });
 
@@ -212,7 +212,7 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
       title: "Already Seen",
       source: "Test",
       category: "tech",
-      notified: 1,
+      notified: true,
     });
 
     // Source data includes seen and new
@@ -257,7 +257,7 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
           }
         }]
       }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     // Articles with substantial content (>50 chars)
     const mixedArticles: ArticleToSummarize[] = [

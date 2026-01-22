@@ -14,14 +14,14 @@ export {
   getAllArticlesForIndexing as getAllArticles,
 } from "@newsfeed-ai/core/db";
 
-// Initialize on first use
-let initialized = false;
+// Initialize on first use with promise-based guard to prevent race conditions
+let initPromise: Promise<void> | null = null;
 
-async function ensureInitialized() {
-  if (!initialized) {
-    await db.ensureDb({ dbPath: paths.database });
-    initialized = true;
+export async function ensureInitialized() {
+  if (!initPromise) {
+    initPromise = db.ensureDb({ dbPath: paths.database }).then(() => {});
   }
+  await initPromise;
 }
 
 // Auto-initialize wrapper for web (simpler API)

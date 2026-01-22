@@ -1,6 +1,5 @@
 import { createCategoryEmbeds, createArticleEmbeds, createDigestEmbed, type DiscordEmbed } from "./discord/discord-embed";
 import type { NotifyArticle } from "./discord/notify";
-import { getCategoryEmoji } from "./config";
 
 // Sample data for preview
 const now = new Date();
@@ -135,22 +134,22 @@ function escapeHtml(text: string): string {
 }
 
 // Generate full preview page
-function generatePreviewPage(format: string): string {
+async function generatePreviewPage(format: string): Promise<string> {
   let embeds: DiscordEmbed[];
   let formatName: string;
-  
+
   switch (format) {
     case 'category':
-      embeds = createCategoryEmbeds(sampleArticles);
+      embeds = await createCategoryEmbeds(sampleArticles);
       formatName = 'Category Grouped';
       break;
     case 'article':
-      embeds = createArticleEmbeds(sampleArticles);
+      embeds = await createArticleEmbeds(sampleArticles);
       formatName = 'Individual Articles';
       break;
     case 'digest':
     default:
-      embeds = createDigestEmbed(sampleArticles);
+      embeds = await createDigestEmbed(sampleArticles);
       formatName = 'Daily Digest';
       break;
   }
@@ -387,11 +386,11 @@ const port = 8000;
 
 Bun.serve({
   port,
-  fetch(req) {
+  async fetch(req) {
     const url = new URL(req.url);
     const format = url.searchParams.get('format') || 'digest';
-    
-    const html = generatePreviewPage(format);
+
+    const html = await generatePreviewPage(format);
     return new Response(html, {
       headers: { 'Content-Type': 'text/html' },
     });
