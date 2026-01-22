@@ -33,7 +33,7 @@ function IndexPage() {
           <p>詳細要旨が生成された記事はまだありません。</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children auto-rows-fr">
           {articles.map((article, index) => (
             <ArticleCard
               key={article.url}

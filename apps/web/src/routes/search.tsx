@@ -120,11 +120,11 @@ function SearchPage() {
               <p>該当する記事が見つかりませんでした</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children auto-rows-fr">
               {results.map((result: SearchResult) => (
-                <div key={result.article.url} className="relative">
+                <div key={result.article.url} className="relative h-full">
                   <ArticleCard article={result.article} />
-                  <div className="absolute top-4 right-4 px-2 py-1 bg-accent text-white text-xs font-semibold rounded">
+                  <div className="absolute top-4 right-4 px-2 py-1 bg-accent text-white text-xs font-semibold rounded z-10">
                     {Math.round(result.score * 100)}%
                   </div>
                 </div>

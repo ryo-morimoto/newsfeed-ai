@@ -17,6 +17,7 @@ export {
   getArticleByUrl,
   getAllArticlesForIndexing,
   updateArticleDetailedSummary,
+  updateArticleOgImage,
   registerTaskNotification,
   getPendingTaskNotifications,
   markTaskNotified,

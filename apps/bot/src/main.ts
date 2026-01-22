@@ -1,10 +1,10 @@
-import { ensureDb, isArticleSeen, saveArticle, markAsNotified, updateArticleDetailedSummary } from "./db";
+import { ensureDb, isArticleSeen, saveArticle, markAsNotified, updateArticleDetailedSummary, updateArticleOgImage } from "./db";
 import { fetchRss } from "./sources/rss";
 import { fetchHackerNews } from "./sources/hackernews";
 import { fetchGitHubTrending } from "./sources/github-trending";
 import { filterArticles, type ArticleToFilter } from "./filter";
 import { summarizeArticles } from "./summarize/summarize";
-import { generateDetailedSummary, fetchArticleContent } from "./summarize/detailed-summary";
+import { generateDetailedSummary, fetchArticleContentWithOgImage } from "./summarize/detailed-summary";
 import { sendToDiscord, type NotifyArticle } from "./discord/notify";
 import { createDigestEmbed, createCategoryEmbeds, sendEmbedsToDiscord, type DiscordEmbed } from "./discord/discord-embed";
 import {
@@ -36,7 +36,7 @@ function hasSubstantialContent(content?: string): boolean {
 }
 
 /**
- * Fetch content for articles that lack substantial content
+ * Fetch content and OG images for articles that lack substantial content
  */
 async function enrichArticleContent(
   articles: ArticleToFilter[]
@@ -52,18 +52,25 @@ async function enrichArticleContent(
 
   // Fetch content in parallel with concurrency limit
   const CONCURRENCY = 5;
-  const results = new Map<string, string>();
+  const results = new Map<string, { content: string; ogImage: string | null }>();
 
   for (let i = 0; i < needsContent.length; i += CONCURRENCY) {
     const batch = needsContent.slice(i, i + CONCURRENCY);
     const promises = batch.map(async (article) => {
       try {
-        const content = await fetchArticleContent(article.url);
+        const { content, ogImage } = await fetchArticleContentWithOgImage(article.url);
         if (content && content.length > 50) {
-          results.set(article.url, content);
-          console.log(`    ✓ ${article.title.slice(0, 40)}... (${content.length} chars)`);
+          results.set(article.url, { content, ogImage });
+          const ogStatus = ogImage ? "📷" : "";
+          console.log(`    ✓ ${article.title.slice(0, 40)}... (${content.length} chars) ${ogStatus}`);
         } else {
-          console.log(`    ✗ ${article.title.slice(0, 40)}... (no content)`);
+          // Still save OG image even if content is empty
+          if (ogImage) {
+            results.set(article.url, { content: "", ogImage });
+            console.log(`    ✗ ${article.title.slice(0, 40)}... (no content, has OG image)`);
+          } else {
+            console.log(`    ✗ ${article.title.slice(0, 40)}... (no content)`);
+          }
         }
       } catch (error) {
         console.log(`    ✗ ${article.title.slice(0, 40)}... (fetch error)`);
@@ -72,11 +79,15 @@ async function enrichArticleContent(
     await Promise.all(promises);
   }
 
-  // Merge fetched content with original articles
+  // Merge fetched content and OG images with original articles
   return articles.map(article => {
-    const fetchedContent = results.get(article.url);
-    if (fetchedContent) {
-      return { ...article, content: fetchedContent };
+    const fetched = results.get(article.url);
+    if (fetched) {
+      return {
+        ...article,
+        content: fetched.content || article.content,
+        og_image: fetched.ogImage || undefined,
+      };
     }
     return article;
   });
@@ -192,6 +203,17 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
   // Fetch content for articles lacking substantial content
   console.log("\n📥 Fetching article content...");
   const articlesWithContent = await enrichArticleContent(topArticles);
+
+  // Update OG images in database
+  const articlesWithOgImage = articlesWithContent.filter(a => a.og_image);
+  if (articlesWithOgImage.length > 0) {
+    console.log(`\n🖼️ Saving ${articlesWithOgImage.length} OG images...`);
+    for (const article of articlesWithOgImage) {
+      if (article.og_image) {
+        await updateArticleOgImage(article.url, article.og_image);
+      }
+    }
+  }
 
   // Summarize
   console.log("\n✍️ Summarizing...");

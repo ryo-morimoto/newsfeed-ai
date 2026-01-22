@@ -5,6 +5,7 @@ export interface ArticleToSummarize {
   category: string;
   content?: string;
   published?: Date;
+  og_image?: string;
 }
 
 export interface SummarizedArticle extends ArticleToSummarize {

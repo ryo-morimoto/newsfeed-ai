@@ -17,8 +17,8 @@ export async function saveArticle(article: Omit<Article, "id" | "created_at">) {
   const db = await getDb();
   const result = await db.execute({
     sql: `
-      INSERT OR IGNORE INTO articles (url, title, source, category, summary, detailed_summary, key_points, target_audience, score, published_at, notified)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR IGNORE INTO articles (url, title, source, category, summary, detailed_summary, key_points, target_audience, og_image, score, published_at, notified)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     args: [
       article.url,
@@ -29,6 +29,7 @@ export async function saveArticle(article: Omit<Article, "id" | "created_at">) {
       article.detailed_summary || null,
       article.key_points || null,
       article.target_audience || null,
+      article.og_image || null,
       article.score || null,
       article.published_at || null,
       article.notified ? 1 : 0,
@@ -111,6 +112,18 @@ export async function updateArticleDetailedSummary(
       WHERE url = ?
     `,
     args: [detailedSummary, JSON.stringify(keyPoints), targetAudience || null, url],
+  });
+}
+
+export async function updateArticleOgImage(url: string, ogImage: string) {
+  const db = await getDb();
+  return db.execute({
+    sql: `
+      UPDATE articles
+      SET og_image = ?
+      WHERE url = ?
+    `,
+    args: [ogImage, url],
   });
 }
 

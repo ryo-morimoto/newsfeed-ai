@@ -7,6 +7,7 @@ export interface ArticleToFilter {
   category: string;
   content?: string;
   published?: Date;
+  og_image?: string;
 }
 
 export interface FilteredArticle extends ArticleToFilter {

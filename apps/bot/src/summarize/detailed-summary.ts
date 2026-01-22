@@ -3,6 +3,14 @@
  * 論文やテック記事のコンテンツを深く読み込んで、詳細な要旨を生成する
  */
 
+/** Maximum URL length for OG images (avoid abnormally long URLs) */
+const MAX_OG_IMAGE_URL_LENGTH = 2048;
+
+export interface FetchArticleResult {
+  content: string;
+  ogImage: string | null;
+}
+
 export interface DetailedSummaryResult {
   title: string;
   url: string;
@@ -16,9 +24,39 @@ export interface DetailedSummaryResult {
 }
 
 /**
- * URLからコンテンツを取得する
+ * HTMLからog:image URLを抽出する
  */
-export async function fetchArticleContent(url: string): Promise<string> {
+function extractOgImage(html: string): string | null {
+  // <meta property="og:image" content="..."> を抽出
+  const ogImageMatch = html.match(
+    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i
+  );
+  if (ogImageMatch && ogImageMatch[1]) {
+    const url = ogImageMatch[1];
+    // URL長制限チェック
+    if (url.length <= MAX_OG_IMAGE_URL_LENGTH) {
+      return url;
+    }
+  }
+
+  // 逆順のパターンも試す: <meta content="..." property="og:image">
+  const reverseMatch = html.match(
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i
+  );
+  if (reverseMatch && reverseMatch[1]) {
+    const url = reverseMatch[1];
+    if (url.length <= MAX_OG_IMAGE_URL_LENGTH) {
+      return url;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * URLからコンテンツとOG画像を取得する
+ */
+export async function fetchArticleContentWithOgImage(url: string): Promise<FetchArticleResult> {
   try {
     const response = await fetch(url, {
       headers: {
@@ -30,18 +68,29 @@ export async function fetchArticleContent(url: string): Promise<string> {
 
     if (!response.ok) {
       console.error(`Failed to fetch article: ${response.status}`);
-      return "";
+      return { content: "", ogImage: null };
     }
 
     const html = await response.text();
 
-    // HTMLからテキストを抽出（簡易版）
-    const text = extractTextFromHtml(html);
-    return text;
+    // HTMLからテキストを抽出
+    const content = extractTextFromHtml(html);
+    // OG画像を抽出
+    const ogImage = extractOgImage(html);
+
+    return { content, ogImage };
   } catch (error) {
     console.error(`Error fetching article content: ${error}`);
-    return "";
+    return { content: "", ogImage: null };
   }
+}
+
+/**
+ * URLからコンテンツを取得する (後方互換性のため維持)
+ */
+export async function fetchArticleContent(url: string): Promise<string> {
+  const result = await fetchArticleContentWithOgImage(url);
+  return result.content;
 }
 
 /**

@@ -91,6 +91,7 @@ export async function ensureDb(config: DbConfig = {}): Promise<Client> {
     "ALTER TABLE articles ADD COLUMN detailed_summary TEXT",
     "ALTER TABLE articles ADD COLUMN key_points TEXT",
     "ALTER TABLE articles ADD COLUMN target_audience TEXT",
+    "ALTER TABLE articles ADD COLUMN og_image TEXT",
   ];
 
   for (const sql of migrations) {
