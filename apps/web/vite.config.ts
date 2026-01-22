@@ -6,10 +6,15 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 import UnoCSS from 'unocss/vite'
 
 export default defineConfig({
+  server: {
+    port: 3000,
+  },
   plugins: [
-    cloudflare({ viteEnvironment: { name: 'ssr' } }),
     UnoCSS(),
-    tsconfigPaths(),
+    tsconfigPaths({
+      projects: ['./tsconfig.json'],
+    }),
+    cloudflare({ viteEnvironment: { name: 'ssr' } }),
     tanstackStart(),
     react(),
   ],
