@@ -13,6 +13,7 @@ import { runNewsfeed, markArticlesNotified } from "./main";
 import { sendEmbedsViaBot } from "./discord/discord-embed";
 import { runFeedbackAgent, type FeedbackResult } from "./agent-feedback";
 import { watchTask, checkPendingTasks, cleanup, type TaskCompletionInfo } from "./task-monitor";
+import { generateMissingSummaries } from "./summarize/generate-missing-summaries";
 
 const client = new Client({
   intents: [
@@ -26,6 +27,9 @@ const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || "";
 
 // Task check interval (30 seconds)
 const TASK_CHECK_INTERVAL_MS = 30_000;
+
+// Missing summary generation interval (15 minutes)
+const SUMMARY_GENERATION_INTERVAL_MS = 15 * 60 * 1000;
 
 // Schedule times (JST hours -> UTC hours)
 // JST 8:00 = UTC 23:00 (previous day)
@@ -189,9 +193,15 @@ client.once(Events.ClientReady, async (c) => {
   // Cleanup old task notifications daily
   setInterval(() => { cleanup(7).catch(console.error); }, 24 * 60 * 60 * 1000);
 
+  // Generate missing detailed summaries every 15 minutes
+  setInterval(() => { generateMissingSummaries().catch(console.error); }, SUMMARY_GENERATION_INTERVAL_MS);
+
   // Run checks immediately on startup
   checkSchedule();
   checkAndNotifyTasks();
+
+  // Run missing summary generation on startup (with delay to avoid startup congestion)
+  setTimeout(() => { generateMissingSummaries().catch(console.error); }, 60_000);
 });
 
 // Handle slash commands

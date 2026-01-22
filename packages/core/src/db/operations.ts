@@ -114,6 +114,25 @@ export async function updateArticleDetailedSummary(
   });
 }
 
+/**
+ * Get articles that are notified but don't have detailed summaries yet
+ * Used by background job to generate missing summaries
+ */
+export async function getArticlesWithoutDetailedSummary(limit: number = 10): Promise<Article[]> {
+  const db = await getDb();
+  const result = await db.execute({
+    sql: `
+      SELECT * FROM articles
+      WHERE detailed_summary IS NULL
+        AND notified = 1
+      ORDER BY created_at DESC
+      LIMIT ?
+    `,
+    args: [limit],
+  });
+  return (result.rows as unknown as ArticleRow[]).map(rowToArticle);
+}
+
 // === Task notification operations ===
 
 /**

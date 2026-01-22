@@ -3,6 +3,8 @@
  * 論文やテック記事のコンテンツを深く読み込んで、詳細な要旨を生成する
  */
 
+import { RateLimitError } from "../utils/retry";
+
 export interface DetailedSummaryResult {
   title: string;
   url: string;
@@ -151,6 +153,11 @@ ${content.slice(0, 12000)}
     });
 
     if (!res.ok) {
+      if (res.status === 429) {
+        const retryAfter = res.headers.get("Retry-After");
+        const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 30_000;
+        throw new RateLimitError(retryAfterMs);
+      }
       console.error(`Detailed summary API error: ${res.status}`);
       return createFallbackResult(article, content);
     }
