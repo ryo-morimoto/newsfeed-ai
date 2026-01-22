@@ -1,0 +1,101 @@
+import type { Article } from '~/lib/db'
+import { getCategoryColor } from '~/lib/category'
+
+interface ArticleCardProps {
+  article: Article
+  featured?: boolean
+}
+
+export function ArticleCard({ article, featured = false }: ArticleCardProps) {
+  const categoryColor = getCategoryColor(article.category)
+  const encodedUrl = encodeURIComponent(article.url)
+  const date = article.created_at
+    ? new Date(article.created_at).toLocaleDateString('ja-JP', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : ''
+
+  return (
+    <article
+      className={`
+        group relative bg-bg-card rounded-xl border border-border
+        transition-all duration-200 ease-out
+        hover:translate-y-[-4px] hover:shadow-lg
+        ${featured ? 'md:col-span-2 md:row-span-2' : ''}
+      `}
+      aria-labelledby={`article-title-${encodedUrl}`}
+    >
+      {/* Thumbnail placeholder - gradient based on category */}
+      <div
+        className={`h-32 rounded-t-xl ${featured ? 'md:h-48' : ''}`}
+        style={{
+          background: `linear-gradient(135deg, ${categoryColor.bg}40, ${categoryColor.bg}20)`,
+        }}
+        aria-hidden="true"
+      />
+
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-3">
+          <span
+            className="px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide"
+            style={{
+              backgroundColor: categoryColor.bg,
+              color: categoryColor.text,
+            }}
+          >
+            {article.category}
+          </span>
+          <span className="text-xs text-text-muted">
+            {article.source}
+          </span>
+        </div>
+
+        {/* Title */}
+        <h2
+          id={`article-title-${encodedUrl}`}
+          className={`
+            font-bold leading-snug mb-3 text-text-primary
+            group-hover:text-accent transition-colors
+            ${featured ? 'text-xl md:text-2xl' : 'text-lg'}
+          `}
+        >
+          <a
+            href={`/article/${encodedUrl}`}
+            className="after:absolute after:inset-0"
+          >
+            {article.title}
+          </a>
+        </h2>
+
+        {/* Summary */}
+        {article.summary && (
+          <p
+            className={`
+              text-text-secondary leading-relaxed mb-4 line-clamp-3
+              ${featured ? 'text-base md:line-clamp-4' : 'text-sm'}
+            `}
+          >
+            {article.summary}
+          </p>
+        )}
+
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-4 border-t border-border">
+          <time
+            dateTime={article.created_at || ''}
+            className="text-xs text-text-muted"
+          >
+            {date}
+          </time>
+          <span className="text-sm font-medium text-accent group-hover:underline">
+            詳細を読む
+            <span className="sr-only">: {article.title}</span>
+          </span>
+        </div>
+      </div>
+    </article>
+  )
+}
