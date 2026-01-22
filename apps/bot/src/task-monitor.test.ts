@@ -17,6 +17,11 @@ const TEST_DB_PATH = join(tmpdir(), "test-task-monitor.db");
 // Save original fetch
 const originalFetch = globalThis.fetch;
 
+// Helper to create typed fetch mock (Bun's fetch has preconnect property)
+function mockFetch(fn: (url: string) => Promise<Response>): typeof fetch {
+  return mock(fn) as unknown as typeof fetch;
+}
+
 describe("task-monitor (stateless)", () => {
   beforeEach(async () => {
     // Clean up test database
@@ -131,7 +136,7 @@ describe("task-monitor with mocked API", () => {
     await registerTaskNotification("missing-task", "ch-1", "msg-1");
 
     // Mock fetch to return 404
-    globalThis.fetch = mock(async (url: string) => {
+    globalThis.fetch = mockFetch(async (url: string) => {
       return new Response(null, { status: 404 });
     });
 
@@ -145,7 +150,7 @@ describe("task-monitor with mocked API", () => {
     await registerTaskNotification("task-1", "ch-1", "msg-1");
 
     // Mock fetch to return success: false
-    globalThis.fetch = mock(async (url: string) => {
+    globalThis.fetch = mockFetch(async (url: string) => {
       return new Response(JSON.stringify({ success: false }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -160,7 +165,7 @@ describe("task-monitor with mocked API", () => {
     await registerTaskNotification("task-1", "ch-1", "msg-1");
 
     // Mock fetch to return in-progress task
-    globalThis.fetch = mock(async (url: string) => {
+    globalThis.fetch = mockFetch(async (url: string) => {
       if (url.includes("/api/tasks/")) {
         return new Response(
           JSON.stringify({
@@ -193,7 +198,7 @@ describe("task-monitor with mocked API", () => {
     await registerTaskNotification("task-1", "ch-1", "msg-1");
 
     // Mock fetch to return failed task
-    globalThis.fetch = mock(async (url: string) => {
+    globalThis.fetch = mockFetch(async (url: string) => {
       if (url.includes("/api/tasks/")) {
         return new Response(
           JSON.stringify({
@@ -228,7 +233,7 @@ describe("task-monitor with mocked API", () => {
     await registerTaskNotification("task-1", "ch-1", "msg-1");
 
     // Mock fetch to return completed task
-    globalThis.fetch = mock(async (url: string) => {
+    globalThis.fetch = mockFetch(async (url: string) => {
       if (url.includes("/api/tasks/task-1")) {
         return new Response(
           JSON.stringify({
@@ -266,7 +271,7 @@ describe("task-monitor with mocked API", () => {
   test("checkPendingTasks detects completed task (done status)", async () => {
     await registerTaskNotification("task-2", "ch-2", "msg-2");
 
-    globalThis.fetch = mock(async (url: string) => {
+    globalThis.fetch = mockFetch(async (url: string) => {
       if (url.includes("/api/tasks/task-2")) {
         return new Response(
           JSON.stringify({
@@ -301,7 +306,7 @@ describe("task-monitor with mocked API", () => {
     await registerTaskNotification("task-1", "ch-1", "msg-1");
 
     // Mock fetch to throw
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = mockFetch(async (_url: string) => {
       throw new Error("Network error");
     });
 
@@ -314,7 +319,7 @@ describe("task-monitor with mocked API", () => {
   test("checkPendingTasks handles task-attempts API error", async () => {
     await registerTaskNotification("task-1", "ch-1", "msg-1");
 
-    globalThis.fetch = mock(async (url: string) => {
+    globalThis.fetch = mockFetch(async (url: string) => {
       if (url.includes("/api/tasks/task-1")) {
         return new Response(
           JSON.stringify({
@@ -349,7 +354,7 @@ describe("task-monitor with mocked API", () => {
     await registerTaskNotification("task-2", "ch-2", "msg-2");
     await registerTaskNotification("task-3", "ch-3", "msg-3");
 
-    globalThis.fetch = mock(async (url: string) => {
+    globalThis.fetch = mockFetch(async (url: string) => {
       // task-1: in progress
       if (url.includes("/api/tasks/task-1")) {
         return new Response(
