@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@newsfeed-ai/core": "workspace:*",
-    "@anthropic-ai/claude-agent-sdk": "^0.2.7",
+    "@anthropic-ai/claude-agent-sdk": "^0.2.15",
     "@libsql/client": "^0.17.0",
     "@orama/orama": "^3.1.18",
     "@orama/plugin-data-persistence": "^3.1.18",
@@ -22,7 +22,7 @@
     "rss-parser": "^3.13.0"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "^5.8.0"
+    "@types/bun": "^1.3.6",
+    "typescript": "^5.9.3"
   }
 }
