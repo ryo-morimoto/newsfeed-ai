@@ -277,4 +277,62 @@ describe("summarizeArticles", () => {
 
     expect(result[0].summary).toBe("Interesting Tech Article"); // Fallback to title
   });
+
+  test("processes both titleOnly and withContent articles", async () => {
+    // Mock fetch to handle two API calls (one for title translation, one for summarization)
+    let callCount = 0;
+    const fetchMock = mock(async () => {
+      callCount++;
+      if (callCount === 1) {
+        // First call: title translation for titleOnly article
+        return {
+          ok: true,
+          json: async () => ({
+            choices: [{
+              message: {
+                content: '[{"index": 0, "summary": "HN記事の日本語タイトル"}]'
+              }
+            }]
+          })
+        };
+      } else {
+        // Second call: summarization for withContent article
+        return {
+          ok: true,
+          json: async () => ({
+            choices: [{
+              message: {
+                content: '[{"index": 0, "summary": "詳細な要約文"}]'
+              }
+            }]
+          })
+        };
+      }
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const mixedArticles: ArticleToSummarize[] = [
+      {
+        title: "HN Article Title",
+        url: "https://example.com/hn",
+        source: "Hacker News",
+        category: "tech",
+        content: "HN Score: 100点", // titleOnly (HN metadata only)
+      },
+      {
+        title: "Blog Article Title",
+        url: "https://example.com/blog",
+        source: "Tech Blog",
+        category: "tech",
+        content: "This is a detailed blog post with substantial content that exceeds the minimum threshold for summarization.",
+      },
+    ];
+
+    const result = await summarizeArticles(mixedArticles, "test-api-key");
+
+    // Both articles should have Japanese summaries
+    expect(result[0].summary).toBe("HN記事の日本語タイトル"); // titleOnly → translated
+    expect(result[1].summary).toBe("詳細な要約文"); // withContent → summarized
+    expect(fetchMock).toHaveBeenCalledTimes(2); // Two API calls made
+  });
 });

@@ -65,6 +65,183 @@ function isLowQualitySummary(summary: string, title: string): boolean {
   return false;
 }
 
+/**
+ * Call Groq API with the given prompt
+ */
+async function callGroqApi(prompt: string, apiKey: string): Promise<string | null> {
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 2048,
+        temperature: 0.3,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!res.ok) {
+      console.error(`Groq API error: ${res.status}`);
+      return null;
+    }
+
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    return data.choices?.[0]?.message?.content || null;
+  } catch (error) {
+    console.error("Groq API error:", error);
+    return null;
+  }
+}
+
+/**
+ * Translate title-only articles to Japanese
+ */
+async function translateTitles(
+  articles: ArticleToSummarize[],
+  apiKey: string
+): Promise<Map<string, string>> {
+  const result = new Map<string, string>();
+
+  if (articles.length === 0) return result;
+
+  const prompt = `英語のテック記事タイトルを日本語に翻訳してください。
+
+## ルール
+- 自然な日本語に翻訳
+- 技術用語はそのままカタカナまたは英語で残す（例: React, AI, LLM, API）
+- 固有名詞はそのまま残す（例: OpenAI, Google, Laravel）
+- 最大100文字
+
+Articles:
+${articles.map((a, i) => `[${i}] ${a.title}`).join("\n")}
+
+JSON配列のみで回答:
+[{"index": 0, "summary": "日本語タイトル"}, ...]`;
+
+  const content = await callGroqApi(prompt, apiKey);
+  if (!content) {
+    // Fallback to original titles
+    for (const article of articles) {
+      result.set(article.url, article.title);
+    }
+    return result;
+  }
+
+  const jsonMatch = content.match(/\[.*\]/s);
+  if (jsonMatch) {
+    try {
+      const translations: { index: number; summary: string }[] = JSON.parse(jsonMatch[0]);
+      for (const article of articles) {
+        const idx = articles.indexOf(article);
+        const found = translations.find((t) => t.index === idx);
+        result.set(article.url, found?.summary || article.title);
+      }
+    } catch {
+      // JSON parse error, fallback to original titles
+      for (const article of articles) {
+        result.set(article.url, article.title);
+      }
+    }
+  } else {
+    // No JSON found, fallback to original titles
+    for (const article of articles) {
+      result.set(article.url, article.title);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Summarize articles with substantial content
+ */
+async function summarizeWithContent(
+  articles: ArticleToSummarize[],
+  apiKey: string
+): Promise<Map<string, string>> {
+  const result = new Map<string, string>();
+
+  if (articles.length === 0) return result;
+
+  const prompt = `あなたはテック記事の要約者です。各記事について、読者が「この記事を読むべきか」判断できる要約を日本語で生成してください。
+
+## 要約のルール
+- 1文、最大100文字
+- タイトルの言い換えではなく、本文から得られる具体的な情報を含める
+- 以下のいずれかを必ず含める：
+  - 具体的な数値・成果（例：「30%高速化」「GPT-4を超える精度」）
+  - 技術的な新規性（例：「従来のTransformerを使わず」「Rustで再実装」）
+  - 実用的な影響（例：「本番環境で使用可能」「MITライセンスで公開」）
+  - 対象者・ユースケース（例：「大規模データ向け」「モバイル特化」）
+
+## 重要：情報不足時の対応
+- 本文から具体的な情報が得られない場合は、元のタイトルをそのまま返してください
+- 「詳細は記事参照」という表現は絶対に使わないでください
+- 曖昧な要約よりも、元のタイトルの方が有用です
+
+## 悪い例と良い例
+悪い: 「新しいAIモデルが発表された」（タイトルの言い換え）→ 元タイトルを使用
+悪い: 「詳細は記事参照」（情報ゼロ）→ 元タイトルを使用
+良い: 「Llamaベースで推論速度2倍、8GBメモリで動作可能」（具体的価値）
+
+悪い: 「Reactの新機能について解説」（何もわからない）→ 元タイトルを使用
+良い: 「Server Componentsでバンドルサイズ40%削減、既存コードとの互換性あり」（判断材料）
+
+Articles:
+${articles.map((a, i) => `[${i}] Title: ${a.title}\nSource: ${a.source}\nContent: ${a.content?.slice(0, 800) || "(本文なし)"}`).join("\n\n")}
+
+JSON配列のみで回答（他のテキストは一切不要）:
+[{"index": 0, "summary": "日本語の要約（情報不足なら元タイトルをそのまま）"}, ...]`;
+
+  const content = await callGroqApi(prompt, apiKey);
+  if (!content) {
+    // Fallback to original titles
+    for (const article of articles) {
+      result.set(article.url, article.title);
+    }
+    return result;
+  }
+
+  const jsonMatch = content.match(/\[.*\]/s);
+  if (jsonMatch) {
+    try {
+      const summaries: { index: number; summary: string }[] = JSON.parse(jsonMatch[0]);
+      for (const article of articles) {
+        const idx = articles.indexOf(article);
+        const found = summaries.find((s) => s.index === idx);
+        if (found) {
+          // Quality check: if summary is low quality, use original title
+          if (isLowQualitySummary(found.summary, article.title)) {
+            result.set(article.url, article.title);
+          } else {
+            result.set(article.url, found.summary);
+          }
+        } else {
+          result.set(article.url, article.title);
+        }
+      }
+    } catch {
+      // JSON parse error, fallback to original titles
+      for (const article of articles) {
+        result.set(article.url, article.title);
+      }
+    }
+  } else {
+    // No JSON found, fallback to original titles
+    for (const article of articles) {
+      result.set(article.url, article.title);
+    }
+  }
+
+  return result;
+}
+
 export async function summarizeArticles(
   articles: ArticleToSummarize[],
   apiKey: string
@@ -93,156 +270,32 @@ export async function summarizeArticles(
     }
   }
 
-  // For title-only articles, use original title + supplementary info if available
-  const titleOnlySummaries = new Map<string, string>();
-  for (const article of titleOnly) {
-    let summary = article.title;
+  // Maps to store summaries
+  const summaryMap = new Map<string, string>();
 
-    // Add HN metrics as supplementary info
-    const hnMatch = article.content?.match(/^HN Score:\s*(\d+)点(、(\d+)コメント)?$/);
-    if (hnMatch && hnMatch[1]) {
-      const score = parseInt(hnMatch[1], 10);
-      const comments = hnMatch[3] ? parseInt(hnMatch[3], 10) : 0;
-      // Only add if score is significant (indicates community interest)
-      if (score >= 100 || comments >= 50) {
-        const parts = [];
-        if (score >= 100) parts.push(`${score}pt`);
-        if (comments >= 50) parts.push(`${comments}comments`);
-        summary = `${article.title} (${parts.join(", ")})`;
-      }
+  // Process title-only articles with translation API
+  if (titleOnly.length > 0) {
+    console.log("  Translating title-only articles to Japanese...");
+    const titleTranslations = await translateTitles(titleOnly, apiKey);
+    for (const [url, translation] of titleTranslations) {
+      summaryMap.set(url, translation);
     }
-
-    titleOnlySummaries.set(article.url, summary);
   }
 
-  // Decide which articles to process - use all if no substantial content available
-  const articlesToProcess = withContent.length > 0 ? withContent : toSummarize;
-  const isUsingTitlesOnly = withContent.length === 0;
-
-  if (isUsingTitlesOnly) {
-    console.log("  No articles with substantial content, generating Japanese titles from English...");
+  // Process articles with content using summarization API
+  if (withContent.length > 0) {
+    console.log("  Summarizing articles with content...");
+    const contentSummaries = await summarizeWithContent(withContent, apiKey);
+    for (const [url, summary] of contentSummaries) {
+      summaryMap.set(url, summary);
+    }
   }
 
-  const prompt = isUsingTitlesOnly
-    ? `英語のテック記事タイトルを日本語に翻訳してください。
-
-## ルール
-- 自然な日本語に翻訳
-- 技術用語はそのままカタカナまたは英語で残す（例: React, AI, LLM, API）
-- 固有名詞はそのまま残す（例: OpenAI, Google, Laravel）
-- 最大100文字
-
-Articles:
-${articlesToProcess.map((a, i) => `[${i}] ${a.title}`).join("\n")}
-
-JSON配列のみで回答:
-[{"index": 0, "summary": "日本語タイトル"}, ...]`
-    : `あなたはテック記事の要約者です。各記事について、読者が「この記事を読むべきか」判断できる要約を日本語で生成してください。
-
-## 要約のルール
-- 1文、最大100文字
-- タイトルの言い換えではなく、本文から得られる具体的な情報を含める
-- 以下のいずれかを必ず含める：
-  - 具体的な数値・成果（例：「30%高速化」「GPT-4を超える精度」）
-  - 技術的な新規性（例：「従来のTransformerを使わず」「Rustで再実装」）
-  - 実用的な影響（例：「本番環境で使用可能」「MITライセンスで公開」）
-  - 対象者・ユースケース（例：「大規模データ向け」「モバイル特化」）
-
-## 重要：情報不足時の対応
-- 本文から具体的な情報が得られない場合は、元のタイトルをそのまま返してください
-- 「詳細は記事参照」という表現は絶対に使わないでください
-- 曖昧な要約よりも、元のタイトルの方が有用です
-
-## 悪い例と良い例
-悪い: 「新しいAIモデルが発表された」（タイトルの言い換え）→ 元タイトルを使用
-悪い: 「詳細は記事参照」（情報ゼロ）→ 元タイトルを使用
-良い: 「Llamaベースで推論速度2倍、8GBメモリで動作可能」（具体的価値）
-
-悪い: 「Reactの新機能について解説」（何もわからない）→ 元タイトルを使用
-良い: 「Server Componentsでバンドルサイズ40%削減、既存コードとの互換性あり」（判断材料）
-
-Articles:
-${articlesToProcess.map((a, i) => `[${i}] Title: ${a.title}\nSource: ${a.source}\nContent: ${a.content?.slice(0, 800) || "(本文なし)"}`).join("\n\n")}
-
-JSON配列のみで回答（他のテキストは一切不要）:
-[{"index": 0, "summary": "日本語の要約（情報不足なら元タイトルをそのまま）"}, ...]`;
-
-  try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        max_tokens: 2048,
-        temperature: 0.3,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-
-    if (!res.ok) {
-      console.error(`Summary API error: ${res.status}`);
-      // On API error, return original titles as summaries for non-Japanese articles
-      return articles.map((a) => ({
-        ...a,
-        summary: a.category === "tech-jp" ? "" : (titleOnlySummaries.get(a.url) || a.title),
-      }));
+  // Return all articles with summaries
+  return articles.map((a) => {
+    if (a.category === "tech-jp") {
+      return { ...a, summary: "" };
     }
-
-    const data = (await res.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const content = data.choices?.[0]?.message?.content || "[]";
-    const jsonMatch = content.match(/\[.*\]/s);
-
-    if (jsonMatch) {
-      const summaries: { index: number; summary: string }[] = JSON.parse(
-        jsonMatch[0]
-      );
-
-      // Build a map of URL -> summary for processed articles
-      const summaryMap = new Map<string, string>();
-      articlesToProcess.forEach((a, i) => {
-        const found = summaries.find((s) => s.index === i);
-        if (found) {
-          // Quality check: if summary is low quality, use original title
-          // Skip quality check for title-only mode (we just want Japanese translation)
-          if (!isUsingTitlesOnly && isLowQualitySummary(found.summary, a.title)) {
-            summaryMap.set(a.url, a.title);
-          } else {
-            summaryMap.set(a.url, found.summary);
-          }
-        } else {
-          // No summary generated, use original title
-          summaryMap.set(a.url, a.title);
-        }
-      });
-
-      // Return all articles with summaries
-      // - Japanese articles get empty summary (displayed as-is)
-      // - When using titles only mode, prefer summaryMap (Japanese translations)
-      // - Otherwise, check title-only first, then summary map
-      return articles.map((a) => {
-        if (a.category === "tech-jp") {
-          return { ...a, summary: "" };
-        }
-        // In title-only mode, prefer summaryMap (Japanese translation)
-        // Otherwise, check titleOnlySummaries first
-        const summary = isUsingTitlesOnly
-          ? (summaryMap.get(a.url) || a.title)
-          : (titleOnlySummaries.get(a.url) || summaryMap.get(a.url) || a.title);
-        return { ...a, summary };
-      });
-    }
-  } catch (error) {
-    console.error("Summary error", error);
-  }
-
-  // On error, return original titles as summaries for non-Japanese articles
-  return articles.map((a) => ({
-    ...a,
-    summary: a.category === "tech-jp" ? "" : a.title,
-  }));
+    return { ...a, summary: summaryMap.get(a.url) || a.title };
+  });
 }
