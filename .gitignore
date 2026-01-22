@@ -10,6 +10,5 @@ data/*.log
 .githooks/
 
 # Web UI build artifacts
-web/dist/
-web/.output/
-web/node_modules/
+apps/web/dist/
+apps/web/.output/
