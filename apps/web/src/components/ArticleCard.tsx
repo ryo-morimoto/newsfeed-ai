@@ -1,8 +1,17 @@
-import type { Article } from '~/lib/db'
 import { getCategoryColor } from '~/lib/category'
 
+// Minimal article fields needed for card display
+interface ArticleForCard {
+  url: string
+  title: string
+  summary?: string | null
+  category: string
+  source: string
+  created_at?: string | null
+}
+
 interface ArticleCardProps {
-  article: Article
+  article: ArticleForCard
   featured?: boolean
 }
 

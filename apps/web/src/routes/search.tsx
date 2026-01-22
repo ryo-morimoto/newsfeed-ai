@@ -1,144 +1,146 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
-import { performSearch } from "~/lib/server-fns";
-import { getCategoryColor } from "~/lib/category";
-import type { SearchResult } from "~/lib/search";
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useState, useEffect } from 'react'
+import { performSearch } from '~/lib/server-fns'
+import { ArticleCard } from '~/components/ArticleCard'
+import type { SearchResult } from '~/lib/search'
 
-export const Route = createFileRoute("/search")({
-  validateSearch: (search: Record<string, unknown>): { q?: string } => {
-    return {
-      q: typeof search.q === "string" ? search.q : undefined,
-    };
-  },
-  loaderDeps: ({ search: { q } }) => ({ q }),
-  loader: async ({ deps: { q } }) => {
-    if (!q || q.trim().length === 0) {
-      return { results: [], query: "" };
-    }
-    const results = await performSearch({ data: q });
-    return { results, query: q };
-  },
-  head: () => ({
-    meta: [{ title: "Newsfeed AI - 検索" }],
-  }),
-  component: SearchPage,
-});
-
-function SearchResultCard({ result }: { result: SearchResult }) {
-  const { article, score } = result;
-  const categoryColor = getCategoryColor(article.category);
-  const encodedUrl = encodeURIComponent(article.url);
-
-  return (
-    <div className="card search-result-card">
-      <div className="card-header">
-        <span
-          className="badge"
-          style={{
-            backgroundColor: categoryColor.bg,
-            color: categoryColor.text,
-          }}
-        >
-          {article.category}
-        </span>
-        <span className="source">{article.source}</span>
-        <span className="score-badge" title={`検索スコア: ${score.toFixed(3)}`}>
-          {(score * 100).toFixed(0)}%
-        </span>
-      </div>
-      <h2 className="card-title">
-        <a href={`/article/${encodedUrl}`}>{article.title}</a>
-      </h2>
-      {article.summary && <p className="card-summary">{article.summary}</p>}
-      <div className="card-footer">
-        <span className="date">
-          {article.created_at
-            ? new Date(article.created_at).toLocaleDateString("ja-JP")
-            : ""}
-        </span>
-        <a href={`/article/${encodedUrl}`} className="read-more">
-          詳細を読む
-        </a>
-      </div>
-    </div>
-  );
+interface SearchParams {
+  q?: string
 }
 
+export const Route = createFileRoute('/search')({
+  validateSearch: (search: Record<string, unknown>): SearchParams => ({
+    q: typeof search.q === 'string' ? search.q : undefined,
+  }),
+  loaderDeps: ({ search }) => ({ q: search.q }),
+  loader: async ({ deps }): Promise<{ results: SearchResult[]; query: string }> => {
+    if (!deps.q) {
+      return { results: [], query: '' }
+    }
+    const results = await performSearch({ data: deps.q })
+    return { results, query: deps.q }
+  },
+  head: ({ loaderData }) => ({
+    meta: [
+      {
+        title: loaderData?.query
+          ? `"${loaderData.query}" の検索結果 - Newsfeed AI`
+          : '検索 - Newsfeed AI',
+      },
+    ],
+  }),
+  component: SearchPage,
+})
+
 function SearchPage() {
-  const { results, query: initialQuery } = Route.useLoaderData();
-  const { q } = Route.useSearch();
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState(q || "");
-  const [isSearching, setIsSearching] = useState(false);
+  const { results, query } = Route.useLoaderData()
+  const { q } = Route.useSearch()
+  const navigate = useNavigate()
+  const [inputValue, setInputValue] = useState(q || '')
+  const [isSearching, setIsSearching] = useState(false)
 
   // Sync input with URL query param
   useEffect(() => {
-    setSearchQuery(q || "");
-  }, [q]);
+    setInputValue(q || '')
+  }, [q])
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inputValue.trim()) return
 
-    setIsSearching(true);
+    setIsSearching(true)
     await navigate({
-      to: "/search",
-      search: { q: searchQuery.trim() },
-    });
-    setIsSearching(false);
-  };
+      to: '/search',
+      search: { q: inputValue.trim() },
+    })
+    setIsSearching(false)
+  }
 
   return (
-    <div className="container">
-      <div className="page-header">
-        <h1>記事検索</h1>
-        <p className="subtitle">キーワードで記事を検索できます</p>
+    <div className="max-w-7xl mx-auto px-6 py-8">
+      {/* Page Header */}
+      <header className="mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-text-primary mb-2">
+          検索
+        </h1>
+        <p className="text-text-secondary">
+          記事をキーワードで検索
+        </p>
+      </header>
+
+      {/* Search Form - use div with role for broader compatibility */}
+      <div role="search" className="mb-8">
+        <form onSubmit={handleSubmit} className="max-w-2xl">
+          <div className="flex gap-3">
+            <label htmlFor="search-input" className="sr-only">
+              検索キーワード
+            </label>
+            <input
+              id="search-input"
+              type="search"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="キーワードを入力..."
+              disabled={isSearching}
+              className="flex-1 px-4 py-3 bg-bg-secondary border border-border rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all disabled:opacity-60"
+            />
+            <button
+              type="submit"
+              disabled={isSearching || !inputValue.trim()}
+              className="px-6 py-3 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isSearching ? (
+                <>
+                  <span className="i-lucide-loader-2 w-4 h-4 animate-spin" aria-hidden="true" />
+                  検索中...
+                </>
+              ) : (
+                <>
+                  <span className="i-lucide-search w-4 h-4" aria-hidden="true" />
+                  検索
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
 
-      <form className="search-form" onSubmit={handleSearch}>
-        <div className="search-input-wrapper">
-          <input
-            type="text"
-            className="search-input"
-            placeholder="検索キーワードを入力..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            disabled={isSearching}
-          />
-          <button
-            type="submit"
-            className="btn btn-primary search-btn"
-            disabled={isSearching || !searchQuery.trim()}
-          >
-            {isSearching ? "検索中..." : "検索"}
-          </button>
-        </div>
-      </form>
+      {/* Results */}
+      {query && (
+        <section aria-label="検索結果">
+          <div className="mb-6">
+            <p className="text-text-secondary">
+              「<span className="font-medium text-text-primary">{query}</span>」の検索結果: {results.length}件
+            </p>
+          </div>
 
-      {initialQuery && (
-        <div className="search-results-header">
-          <p className="results-count">
-            「{initialQuery}」の検索結果: {results.length}件
-          </p>
-        </div>
+          {results.length === 0 ? (
+            <div className="text-center py-16 text-text-muted">
+              <span className="i-lucide-search-x w-12 h-12 mx-auto mb-4 block" aria-hidden="true" />
+              <p>該当する記事が見つかりませんでした</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
+              {results.map((result: SearchResult) => (
+                <div key={result.article.url} className="relative">
+                  <ArticleCard article={result.article} />
+                  <div className="absolute top-4 right-4 px-2 py-1 bg-accent text-white text-xs font-semibold rounded">
+                    {Math.round(result.score * 100)}%
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
-      {results.length === 0 && initialQuery ? (
-        <div className="empty-state">
-          <p>「{initialQuery}」に一致する記事が見つかりませんでした。</p>
-          <p>別のキーワードで検索してみてください。</p>
-        </div>
-      ) : results.length > 0 ? (
-        <div className="card-grid">
-          {results.map((result) => (
-            <SearchResultCard key={result.article.url} result={result} />
-          ))}
-        </div>
-      ) : (
-        <div className="empty-state">
-          <p>検索キーワードを入力してください。</p>
+      {/* Initial State */}
+      {!query && (
+        <div className="text-center py-16 text-text-muted">
+          <span className="i-lucide-search w-12 h-12 mx-auto mb-4 block" aria-hidden="true" />
+          <p>キーワードを入力して検索してください</p>
         </div>
       )}
     </div>
-  );
+  )
 }
