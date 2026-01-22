@@ -1,10 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import {
-  CATEGORIES,
-  getCategoryEmoji,
-  getCategoryColor,
-  getCategoryConfig,
-} from "./categories";
+import { CATEGORIES, getCategoryEmoji, getCategoryColor, getCategoryConfig } from "./categories";
 
 describe("categories module", () => {
   describe("CATEGORIES", () => {

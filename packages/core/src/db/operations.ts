@@ -41,12 +41,14 @@ export async function saveArticle(article: Omit<Article, "id" | "created_at">) {
 
 export async function markAsNotified(urls: string[]) {
   const db = await getDb();
-  for (const url of urls) {
-    await db.execute({
-      sql: "UPDATE articles SET notified = 1 WHERE url = ?",
-      args: [url],
-    });
-  }
+  await Promise.all(
+    urls.map((url) =>
+      db.execute({
+        sql: "UPDATE articles SET notified = 1 WHERE url = ?",
+        args: [url],
+      })
+    )
+  );
 }
 
 export async function getRecentArticles(hours: number = 24): Promise<Article[]> {

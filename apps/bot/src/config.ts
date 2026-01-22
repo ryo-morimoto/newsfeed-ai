@@ -1,4 +1,5 @@
-import { paths } from "@newsfeed-ai/core";
+// Default config path (relative to monorepo root)
+const DEFAULT_CONFIG_PATH = "./config/sources.yaml";
 
 export interface RssSource {
   name: string;
@@ -36,23 +37,20 @@ let config: Config | null = null;
 export async function loadConfig(): Promise<Config> {
   if (config) return config;
 
-  const content = await Bun.file(paths.sourcesConfig).text();
+  const configPath = process.env.CONFIG_PATH || DEFAULT_CONFIG_PATH;
+  const content = await Bun.file(configPath).text();
   config = Bun.YAML.parse(content) as Config;
   return config;
 }
 
 export async function getRssSources(): Promise<RssSource[]> {
   const cfg = await loadConfig();
-  return cfg.sources.filter(
-    (s): s is RssSource => s.type === "rss" && s.enabled
-  );
+  return cfg.sources.filter((s): s is RssSource => s.type === "rss" && s.enabled);
 }
 
 export async function getHackerNewsSource(): Promise<HackerNewsSource | undefined> {
   const cfg = await loadConfig();
-  return cfg.sources.find(
-    (s): s is HackerNewsSource => s.type === "hackernews" && s.enabled
-  );
+  return cfg.sources.find((s): s is HackerNewsSource => s.type === "hackernews" && s.enabled);
 }
 
 export async function getGitHubTrendingSource(): Promise<GitHubTrendingSource | undefined> {

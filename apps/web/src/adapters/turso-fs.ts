@@ -3,7 +3,7 @@
  * Implements @newsfeed-ai/core FileSystem interface using Turso for storage
  * Used by Workers where node:fs is not available
  */
-import type { FileSystem } from "@newsfeed-ai/core";
+import type { FileSystem } from "@newsfeed-ai/core/search";
 import { getClient } from "../lib/db";
 
 export const tursoFileSystem: FileSystem = {

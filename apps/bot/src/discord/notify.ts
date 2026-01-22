@@ -9,7 +9,59 @@ export interface NotifyArticle {
   published?: Date;
 }
 
+const DISCORD_RATE_LIMIT_MS = 500;
+const DISCORD_MAX_MESSAGE_LENGTH = 1900;
 
+function splitIntoChunks(content: string, maxLength: number): string[] {
+  if (content.length <= maxLength) {
+    return [content];
+  }
+
+  const chunks: string[] = [];
+  const lines = content.split("\n");
+  let chunk = "";
+
+  for (const line of lines) {
+    if (chunk.length + line.length > maxLength) {
+      chunks.push(chunk);
+      chunk = line + "\n";
+    } else {
+      chunk += line + "\n";
+    }
+  }
+  if (chunk) chunks.push(chunk);
+
+  return chunks;
+}
+
+async function sendChunksWithRateLimit(
+  webhookUrl: string,
+  chunks: string[],
+  delayMs: number
+): Promise<boolean> {
+  try {
+    await chunks.reduce<Promise<void>>(async (prevPromise, chunk, index) => {
+      await prevPromise;
+      if (index > 0) {
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+
+      const res = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: chunk }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Discord webhook failed: ${res.status}`);
+      }
+    }, Promise.resolve());
+    return true;
+  } catch (error) {
+    console.error("Failed to send Discord notification", error);
+    return false;
+  }
+}
 
 export async function sendToDiscord(
   webhookUrl: string,
@@ -36,68 +88,33 @@ export async function sendToDiscord(
     {} as Record<string, NotifyArticle[]>
   );
 
+  // Get all category emojis in parallel
+  const categories = Object.keys(grouped);
+  const emojis = await Promise.all(categories.map(getCategoryEmoji));
+  const categoryEmojis = Object.fromEntries(categories.map((cat, i) => [cat, emojis[i]]));
+
   // Build message
   const today = new Date().toISOString().split("T")[0];
   let content = `📰 **Today's Tech Digest** (${today})\n\n`;
 
   for (const [category, items] of Object.entries(grouped)) {
-    const emoji = await getCategoryEmoji(category);
+    const emoji = categoryEmojis[category];
     content += `**${emoji}**\n`;
 
     for (const item of items.slice(0, 5)) {
       // Max 5 per category
-      // Japanese articles: use title as-is, English: use summary
       const isJapanese = category === "tech-jp";
-      const displayText = isJapanese ? item.title : (item.summary || item.title);
-      // Wrap URL in <> to disable link preview
+      const displayText = isJapanese ? item.title : item.summary || item.title;
       content += `• ${displayText} [${item.source}]\n  <${item.url}>\n`;
     }
     content += "\n";
   }
 
-  // Discord has 2000 char limit per message
-  const chunks: string[] = [];
-  if (content.length > 1900) {
-    // Split into multiple messages
-    const lines = content.split("\n");
-    let chunk = "";
-    for (const line of lines) {
-      if (chunk.length + line.length > 1900) {
-        chunks.push(chunk);
-        chunk = line + "\n";
-      } else {
-        chunk += line + "\n";
-      }
-    }
-    if (chunk) chunks.push(chunk);
-  } else {
-    chunks.push(content);
+  const chunks = splitIntoChunks(content, DISCORD_MAX_MESSAGE_LENGTH);
+  const success = await sendChunksWithRateLimit(webhookUrl, chunks, DISCORD_RATE_LIMIT_MS);
+
+  if (success) {
+    console.log(`Sent ${articles.length} articles to Discord`);
   }
-
-  // Send messages
-  for (const chunk of chunks) {
-    try {
-      const res = await fetch(webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: chunk }),
-      });
-
-      if (!res.ok) {
-        console.error(`Discord webhook failed: ${res.status}`);
-        return false;
-      }
-
-      // Rate limit: wait between messages
-      if (chunks.length > 1) {
-        await new Promise((r) => setTimeout(r, 500));
-      }
-    } catch (error) {
-      console.error("Failed to send Discord notification", error);
-      return false;
-    }
-  }
-
-  console.log(`Sent ${articles.length} articles to Discord`);
-  return true;
+  return success;
 }

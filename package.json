@@ -1,8 +1,11 @@
 {
   "name": "newsfeed-ai",
   "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "type": "module",
-  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "dev:bot": "bun --watch apps/bot/src/main.ts",
     "dev:web": "cd apps/web && bun run dev",
@@ -13,13 +16,19 @@
     "test:unit": "bun test apps/bot/src/*.test.ts",
     "test:integration": "bun test apps/bot/src/__tests__/",
     "test:watch": "bun test --watch",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
     "typecheck": "bun x tsc --noEmit -p packages/core && bun x tsc --noEmit -p apps/bot",
-    "ci": "bun run typecheck && bun run test",
+    "ci": "bun run typecheck && bun run lint && bun run test",
     "prepare": "lefthook install"
   },
   "devDependencies": {
     "@types/bun": "^1.3.6",
     "lefthook": "^2.0.15",
+    "oxfmt": "^0.26.0",
+    "oxlint": "^1.41.0",
     "typescript": "^5.9.3"
   }
 }

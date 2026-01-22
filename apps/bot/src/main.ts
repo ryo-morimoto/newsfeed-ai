@@ -1,17 +1,28 @@
-import { ensureDb, isArticleSeen, saveArticle, markAsNotified, updateArticleDetailedSummary, updateArticleOgImage } from "./db";
+import {
+  ensureDb,
+  isArticleSeen,
+  saveArticle,
+  markAsNotified,
+  updateArticleDetailedSummary,
+  updateArticleOgImage,
+} from "./db";
 import { fetchRss } from "./sources/rss";
 import { fetchHackerNews } from "./sources/hackernews";
 import { fetchGitHubTrending } from "./sources/github-trending";
 import { filterArticles, type ArticleToFilter } from "./filter";
 import { summarizeArticles } from "./summarize/summarize";
-import { generateDetailedSummary, fetchArticleContentWithOgImage } from "./summarize/detailed-summary";
-import { sendToDiscord, type NotifyArticle } from "./discord/notify";
-import { createDigestEmbed, createCategoryEmbeds, sendEmbedsToDiscord, type DiscordEmbed } from "./discord/discord-embed";
 import {
-  getRssSources,
-  getHackerNewsSource,
-  getGitHubTrendingSource,
-} from "./config";
+  generateDetailedSummary,
+  fetchArticleContentWithOgImage,
+} from "./summarize/detailed-summary";
+import { sendToDiscord, type NotifyArticle } from "./discord/notify";
+import {
+  createDigestEmbed,
+  createCategoryEmbeds,
+  sendEmbedsToDiscord,
+  type DiscordEmbed,
+} from "./discord/discord-embed";
+import { getRssSources, getHackerNewsSource, getGitHubTrendingSource } from "./config";
 import { persistSearchIndex } from "./search/orama-index";
 
 // Environment variables
@@ -39,10 +50,8 @@ function hasSubstantialContent(content?: string): boolean {
 /**
  * Fetch content and OG images for articles that lack substantial content
  */
-async function enrichArticleContent(
-  articles: ArticleToFilter[]
-): Promise<ArticleToFilter[]> {
-  const needsContent = articles.filter(a => !hasSubstantialContent(a.content));
+async function enrichArticleContent(articles: ArticleToFilter[]): Promise<ArticleToFilter[]> {
+  const needsContent = articles.filter((a) => !hasSubstantialContent(a.content));
 
   if (needsContent.length === 0) {
     console.log("  All articles have substantial content");
@@ -63,7 +72,9 @@ async function enrichArticleContent(
         if (content && content.length > 50) {
           results.set(article.url, { content, ogImage });
           const ogStatus = ogImage ? "📷" : "";
-          console.log(`    ✓ ${article.title.slice(0, 40)}... (${content.length} chars) ${ogStatus}`);
+          console.log(
+            `    ✓ ${article.title.slice(0, 40)}... (${content.length} chars) ${ogStatus}`
+          );
         } else {
           // Still save OG image even if content is empty
           if (ogImage) {
@@ -81,7 +92,7 @@ async function enrichArticleContent(
   }
 
   // Merge fetched content and OG images with original articles
-  return articles.map(article => {
+  return articles.map((article) => {
     const fetched = results.get(article.url);
     if (fetched) {
       return {
@@ -205,24 +216,25 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
   console.log("\n📥 Fetching article content...");
   const articlesWithContent = await enrichArticleContent(topArticles);
 
-  // Update OG images in database
-  const articlesWithOgImage = articlesWithContent.filter(a => a.og_image);
+  // Update OG images in database (in parallel)
+  const articlesWithOgImage = articlesWithContent.filter((a) => a.og_image);
   if (articlesWithOgImage.length > 0) {
     console.log(`\n🖼️ Saving ${articlesWithOgImage.length} OG images...`);
-    for (const article of articlesWithOgImage) {
-      if (article.og_image) {
-        await updateArticleOgImage(article.url, article.og_image);
-      }
-    }
+    await Promise.all(
+      articlesWithOgImage.map((article) =>
+        article.og_image ? updateArticleOgImage(article.url, article.og_image) : Promise.resolve()
+      )
+    );
   }
 
   // Summarize
   console.log("\n✍️ Summarizing...");
   const summarized = await summarizeArticles(articlesWithContent, GROQ_API_KEY);
 
-  // Generate detailed summaries for selected articles
+  // Generate detailed summaries for selected articles (sequential due to API rate limits)
   console.log("\n📝 Generating detailed summaries...");
-  for (const article of summarized) {
+  await summarized.reduce<Promise<void>>(async (prevPromise, article) => {
+    await prevPromise;
     try {
       const detailed = await generateDetailedSummary(
         {
@@ -245,7 +257,7 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
     } catch (error) {
       console.error(`  ✗ Failed for ${article.url}:`, error);
     }
-  }
+  }, Promise.resolve());
 
   // Prepare for notification
   const toNotify: NotifyArticle[] = summarized.map((a) => ({
@@ -259,15 +271,17 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
 
   // Save all fetched articles to DB (for dedup next time)
   console.log("\n💾 Saving to database...");
-  for (const article of allArticles) {
-    await saveArticle({
-      url: article.url,
-      title: article.title,
-      source: article.source,
-      category: article.category,
-      notified: false,
-    });
-  }
+  await Promise.all(
+    allArticles.map((article) =>
+      saveArticle({
+        url: article.url,
+        title: article.title,
+        source: article.source,
+        category: article.category,
+        notified: false,
+      })
+    )
+  );
 
   // Persist search index to Turso for Workers
   console.log("\n🔍 Persisting search index...");

@@ -74,7 +74,7 @@ async function main() {
         } else {
           console.log(`  - ${article.title.slice(0, 50)}... (no OG image)`);
         }
-      } catch (error) {
+      } catch {
         console.log(`  ✗ ${article.title.slice(0, 50)}... (error)`);
         failed++;
       }

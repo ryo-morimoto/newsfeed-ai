@@ -1,19 +1,14 @@
-import {
-  ErrorComponent,
-  rootRouteId,
-  useMatch,
-  useRouter,
-} from '@tanstack/react-router'
-import type { ErrorComponentProps } from '@tanstack/react-router'
+import { ErrorComponent, rootRouteId, useMatch, useRouter } from "@tanstack/react-router";
+import type { ErrorComponentProps } from "@tanstack/react-router";
 
 export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
-  const router = useRouter()
+  const router = useRouter();
   const isRoot = useMatch({
     strict: false,
     select: (state) => state.id === rootRouteId,
-  })
+  });
 
-  console.error('DefaultCatchBoundary Error:', error)
+  console.error("DefaultCatchBoundary Error:", error);
 
   return (
     <div className="min-h-[50vh] flex flex-col items-center justify-center gap-6 p-8">
@@ -21,7 +16,7 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
       <div className="flex gap-3 items-center flex-wrap">
         <button
           onClick={() => {
-            router.invalidate()
+            router.invalidate();
           }}
           className="px-4 py-2 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover transition-colors"
         >
@@ -44,5 +39,5 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
         )}
       </div>
     </div>
-  )
+  );
 }

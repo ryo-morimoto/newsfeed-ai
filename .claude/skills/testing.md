@@ -78,9 +78,7 @@ mock.module("./db", () => ({
 }));
 
 // Mock fetch
-globalThis.fetch = mock(() =>
-  Promise.resolve(new Response(JSON.stringify({ data: "test" })))
-);
+globalThis.fetch = mock(() => Promise.resolve(new Response(JSON.stringify({ data: "test" }))));
 ```
 
 ## Test Patterns in This Project
@@ -88,6 +86,7 @@ globalThis.fetch = mock(() =>
 ### Testing with Database
 
 Integration tests use in-memory SQLite:
+
 ```typescript
 import { Database } from "bun:sqlite";
 const db = new Database(":memory:");
@@ -104,6 +103,7 @@ expect(embed.color).toBe(CATEGORY_COLORS[article.category]);
 ## CI Pipeline
 
 Tests run in GitHub Actions:
+
 1. Type checking: `bun x tsc --noEmit`
 2. Unit tests: `bun test src/*.test.ts`
 3. Integration tests: `bun test src/__tests__/`
@@ -111,6 +111,7 @@ Tests run in GitHub Actions:
 ## Coverage
 
 Bun supports coverage reporting:
+
 ```bash
 bun test --coverage
 ```

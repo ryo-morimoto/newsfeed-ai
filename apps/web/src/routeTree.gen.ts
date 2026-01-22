@@ -8,80 +8,80 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as SearchRouteImport } from './routes/search'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ArticleUrlRouteImport } from './routes/article.$url'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as SearchRouteImport } from "./routes/search";
+import { Route as IndexRouteImport } from "./routes/index";
+import { Route as ArticleUrlRouteImport } from "./routes/article.$url";
 
 const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
+  id: "/search",
+  path: "/search",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ArticleUrlRoute = ArticleUrlRouteImport.update({
-  id: '/article/$url',
-  path: '/article/$url',
+  id: "/article/$url",
+  path: "/article/$url",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/search': typeof SearchRoute
-  '/article/$url': typeof ArticleUrlRoute
+  "/": typeof IndexRoute;
+  "/search": typeof SearchRoute;
+  "/article/$url": typeof ArticleUrlRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/search': typeof SearchRoute
-  '/article/$url': typeof ArticleUrlRoute
+  "/": typeof IndexRoute;
+  "/search": typeof SearchRoute;
+  "/article/$url": typeof ArticleUrlRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/search': typeof SearchRoute
-  '/article/$url': typeof ArticleUrlRoute
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/search": typeof SearchRoute;
+  "/article/$url": typeof ArticleUrlRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/search' | '/article/$url'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/search' | '/article/$url'
-  id: '__root__' | '/' | '/search' | '/article/$url'
-  fileRoutesById: FileRoutesById
+  fileRoutesByFullPath: FileRoutesByFullPath;
+  fullPaths: "/" | "/search" | "/article/$url";
+  fileRoutesByTo: FileRoutesByTo;
+  to: "/" | "/search" | "/article/$url";
+  id: "__root__" | "/" | "/search" | "/article/$url";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  SearchRoute: typeof SearchRoute
-  ArticleUrlRoute: typeof ArticleUrlRoute
+  IndexRoute: typeof IndexRoute;
+  SearchRoute: typeof SearchRoute;
+  ArticleUrlRoute: typeof ArticleUrlRoute;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/article/$url': {
-      id: '/article/$url'
-      path: '/article/$url'
-      fullPath: '/article/$url'
-      preLoaderRoute: typeof ArticleUrlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+    "/search": {
+      id: "/search";
+      path: "/search";
+      fullPath: "/search";
+      preLoaderRoute: typeof SearchRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/article/$url": {
+      id: "/article/$url";
+      path: "/article/$url";
+      fullPath: "/article/$url";
+      preLoaderRoute: typeof ArticleUrlRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
@@ -89,16 +89,16 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SearchRoute: SearchRoute,
   ArticleUrlRoute: ArticleUrlRoute,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();
 
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
+import type { getRouter } from "./router.tsx";
+import type { createStart } from "@tanstack/react-start";
+declare module "@tanstack/react-start" {
   interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
+    ssr: true;
+    router: Awaited<ReturnType<typeof getRouter>>;
   }
 }

@@ -51,6 +51,7 @@ Sources are defined in `config/sources.yaml`.
 ## Categories
 
 Available categories (defined in same config file):
+
 - `ai` - AI/LLM content
 - `tech` - General tech news
 - `frontend` - Frontend development
@@ -65,6 +66,7 @@ To add a new category, also add it to the `categories` section with an emoji.
 ## Type Definitions
 
 Source types are defined in `src/config.ts`:
+
 - `RssSource`
 - `HackerNewsSource`
 - `GitHubTrendingSource`
@@ -72,5 +74,6 @@ Source types are defined in `src/config.ts`:
 ## Validation
 
 After adding a source:
+
 1. Run `bun run typecheck` to verify types
 2. Run `bun test src/config.test.ts` to test config loading

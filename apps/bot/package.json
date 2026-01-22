@@ -11,9 +11,9 @@
     "typecheck": "bun x tsc --noEmit"
   },
   "dependencies": {
-    "@newsfeed-ai/core": "workspace:*",
     "@anthropic-ai/claude-agent-sdk": "^0.2.15",
     "@libsql/client": "^0.17.0",
+    "@newsfeed-ai/core": "workspace:*",
     "@orama/orama": "^3.1.18",
     "@orama/plugin-data-persistence": "^3.1.18",
     "@orama/plugin-embeddings": "^3.1.18",

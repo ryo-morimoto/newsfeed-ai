@@ -6,10 +6,16 @@ preview_urls = false
 
 main = "@tanstack/react-start/server-entry"
 
+# Observability - enable logging for debugging
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+invocation_logs = true
+
 # Environment variables are set via Cloudflare Dashboard or wrangler secret
 
 # Production environment
 [env.production]
-routes = [
-  { pattern = "newsfeed-ai.ryo-o.dev", custom_domain = true }
-]
+routes = [{ pattern = "newsfeed-ai.ryo-o.dev", custom_domain = true }]

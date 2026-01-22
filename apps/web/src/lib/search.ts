@@ -1,45 +1,21 @@
 /**
  * Search module initialization for web app
- * Uses @newsfeed-ai/core with runtime adapter selection:
- * - Cloudflare Workers: Turso FileSystem adapter
- * - Node.js/Bun: Node.js FileSystem adapter
+ * Uses @newsfeed-ai/core with Turso FileSystem adapter for Cloudflare Workers
  */
-import { search, paths, type Article } from "@newsfeed-ai/core";
+import * as search from "@newsfeed-ai/core/search";
+import type { Article } from "@newsfeed-ai/core/db";
+import { tursoFileSystem } from "../adapters/turso-fs";
 
 // Re-export SearchResult type for use by server-fns
 export type { SearchResult } from "@newsfeed-ai/core/search";
 import { getAllArticles, ensureInitialized as ensureDbInitialized } from "./db";
 
-// Detect if running on Cloudflare Workers
-const isCloudflareWorkers =
-  typeof globalThis.caches !== "undefined" &&
-  typeof (globalThis as Record<string, unknown>).WebSocketPair !== "undefined";
-
-// Lazy load the appropriate adapter
-async function getFileSystem(): Promise<search.FileSystem> {
-  if (isCloudflareWorkers) {
-    const { tursoFileSystem } = await import("../adapters/turso-fs");
-    return tursoFileSystem;
-  } else {
-    const { nodeFileSystem } = await import("../adapters/fs");
-    return nodeFileSystem;
-  }
-}
-
 // Initialization tracking
 let initialized = false;
-let searchConfig: search.SearchConfig | null = null;
-
-async function getSearchConfig(): Promise<search.SearchConfig> {
-  if (!searchConfig) {
-    const fs = await getFileSystem();
-    searchConfig = {
-      indexPath: isCloudflareWorkers ? "default" : paths.searchIndex,
-      fs,
-    };
-  }
-  return searchConfig;
-}
+const searchConfig: search.SearchConfig = {
+  indexPath: "default",
+  fs: tursoFileSystem,
+};
 
 /**
  * Ensure search service is initialized
@@ -49,8 +25,7 @@ async function ensureInitialized(): Promise<void> {
 
   // Ensure database is initialized before search (getAllArticles requires it)
   await ensureDbInitialized();
-  const config = await getSearchConfig();
-  await search.initSearchService(config, getAllArticles);
+  await search.initSearchService(searchConfig, getAllArticles);
   initialized = true;
 }
 
@@ -74,8 +49,7 @@ export async function searchArticles(
  */
 export async function rebuildIndex(articles: Article[]): Promise<void> {
   console.log("[web-search] Rebuilding index...");
-  const config = await getSearchConfig();
-  await search.rebuildSearchIndex(config, async () => articles);
+  await search.rebuildSearchIndex(searchConfig, async () => articles);
 }
 
 /**

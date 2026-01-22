@@ -103,9 +103,9 @@ export async function ensureDb(config: DbConfig = {}): Promise<Client> {
     "ALTER TABLE articles ADD COLUMN og_image TEXT",
   ];
 
-  for (const sql of migrations) {
+  async function runMigration(sql: string): Promise<void> {
     try {
-      await client.execute(sql);
+      await client!.execute(sql);
     } catch (error) {
       // Only ignore "duplicate column" errors, re-throw others
       const message = error instanceof Error ? error.message : String(error);
@@ -115,6 +115,14 @@ export async function ensureDb(config: DbConfig = {}): Promise<Client> {
       }
     }
   }
+
+  await migrations.reduce<Promise<void>>(
+    async (prev, sql) => {
+      await prev;
+      await runMigration(sql);
+    },
+    Promise.resolve()
+  );
 
   initialized = true;
   currentConfig = config;

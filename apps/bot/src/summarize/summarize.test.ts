@@ -8,21 +8,24 @@ const sampleArticles: ArticleToSummarize[] = [
     url: "https://example.com/ai",
     source: "arXiv",
     category: "ai",
-    content: "This paper presents a new approach to language models using a novel architecture that achieves state-of-the-art results.",
+    content:
+      "This paper presents a new approach to language models using a novel architecture that achieves state-of-the-art results.",
   },
   {
     title: "React New Features",
     url: "https://example.com/react",
     source: "Dev Blog",
     category: "frontend",
-    content: "React 20 introduces server components with significant performance improvements and better developer experience for building web applications.",
+    content:
+      "React 20 introduces server components with significant performance improvements and better developer experience for building web applications.",
   },
   {
     title: "日本のテックニュース",
     url: "https://example.com/jp",
     source: "Zenn",
     category: "tech-jp",
-    content: "日本語の記事です。この記事では最新のテクノロジートレンドについて詳しく解説しています。",
+    content:
+      "日本語の記事です。この記事では最新のテクノロジートレンドについて詳しく解説しています。",
   },
 ];
 
@@ -35,7 +38,7 @@ describe("summarizeArticles", () => {
 
   test("returns articles with empty summary when no API key", async () => {
     const result = await summarizeArticles(sampleArticles, "");
-    
+
     expect(result.length).toBe(sampleArticles.length);
     for (const article of result) {
       expect(article.summary).toBe("");
@@ -48,13 +51,15 @@ describe("summarizeArticles", () => {
   });
 
   test("skips Japanese articles (tech-jp category)", async () => {
-    const japaneseOnly: ArticleToSummarize[] = [{
-      title: "日本語記事",
-      url: "https://example.com/jp",
-      source: "Zenn",
-      category: "tech-jp",
-      content: "内容",
-    }];
+    const japaneseOnly: ArticleToSummarize[] = [
+      {
+        title: "日本語記事",
+        url: "https://example.com/jp",
+        source: "Zenn",
+        category: "tech-jp",
+        content: "内容",
+      },
+    ];
 
     // Should not call API when only Japanese articles
     const fetchMock = mock(async () => {
@@ -63,32 +68,37 @@ describe("summarizeArticles", () => {
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const result = await summarizeArticles(japaneseOnly, "test-api-key");
-    
+
     expect(result.length).toBe(1);
     expect(result[0].summary).toBe("");
   });
 
   test("summarizes non-Japanese articles", async () => {
     globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({
-        choices: [{
-          message: {
-            content: JSON.stringify([
-              { index: 0, summary: "AIモデルの新しいアプローチ" },
-              { index: 1, summary: "ReactのRSC機能" },
-            ])
-          }
-        }]
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify([
+                  { index: 0, summary: "AIモデルの新しいアプローチ" },
+                  { index: 1, summary: "ReactのRSC機能" },
+                ]),
+              },
+            },
+          ],
+        }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
 
     const result = await summarizeArticles(sampleArticles, "test-api-key");
-    
+
     // Find non-Japanese articles
-    const aiArticle = result.find(a => a.category === "ai");
-    const frontendArticle = result.find(a => a.category === "frontend");
-    const jpArticle = result.find(a => a.category === "tech-jp");
-    
+    const aiArticle = result.find((a) => a.category === "ai");
+    const frontendArticle = result.find((a) => a.category === "frontend");
+    const jpArticle = result.find((a) => a.category === "tech-jp");
+
     expect(aiArticle?.summary).toBe("AIモデルの新しいアプローチ");
     expect(frontendArticle?.summary).toBe("ReactのRSC機能");
     expect(jpArticle?.summary).toBe(""); // Japanese article gets empty summary
@@ -103,9 +113,9 @@ describe("summarizeArticles", () => {
 
     // On API error, non-Japanese articles should fallback to original titles
     expect(result.length).toBe(sampleArticles.length);
-    const aiArticle = result.find(a => a.category === "ai");
-    const frontendArticle = result.find(a => a.category === "frontend");
-    const jpArticle = result.find(a => a.category === "tech-jp");
+    const aiArticle = result.find((a) => a.category === "ai");
+    const frontendArticle = result.find((a) => a.category === "frontend");
+    const jpArticle = result.find((a) => a.category === "tech-jp");
 
     expect(aiArticle?.summary).toBe("AI Research Paper"); // Fallback to title
     expect(frontendArticle?.summary).toBe("React New Features"); // Fallback to title
@@ -114,22 +124,27 @@ describe("summarizeArticles", () => {
 
   test("handles malformed JSON response with title fallback", async () => {
     globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({
-        choices: [{
-          message: {
-            content: "Not valid JSON"
-          }
-        }]
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: "Not valid JSON",
+              },
+            },
+          ],
+        }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
 
     const result = await summarizeArticles(sampleArticles, "test-api-key");
 
     // On malformed response, non-Japanese articles should fallback to original titles
     expect(result.length).toBe(sampleArticles.length);
-    const aiArticle = result.find(a => a.category === "ai");
-    const frontendArticle = result.find(a => a.category === "frontend");
-    const jpArticle = result.find(a => a.category === "tech-jp");
+    const aiArticle = result.find((a) => a.category === "ai");
+    const frontendArticle = result.find((a) => a.category === "frontend");
+    const jpArticle = result.find((a) => a.category === "tech-jp");
 
     expect(aiArticle?.summary).toBe("AI Research Paper"); // Fallback to title
     expect(frontendArticle?.summary).toBe("React New Features"); // Fallback to title
@@ -138,25 +153,31 @@ describe("summarizeArticles", () => {
 
   test("preserves original article properties", async () => {
     globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({
-        choices: [{
-          message: {
-            content: JSON.stringify([
-              { index: 0, summary: "要約テスト" },
-            ])
-          }
-        }]
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify([{ index: 0, summary: "要約テスト" }]),
+              },
+            },
+          ],
+        }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
 
-    const articles: ArticleToSummarize[] = [{
-      title: "Test Title",
-      url: "https://test.com",
-      source: "Test Source",
-      category: "ai",
-      content: "This is substantial content for testing that exceeds the minimum character threshold for summarization.",
-      published: new Date("2024-01-15"),
-    }];
+    const articles: ArticleToSummarize[] = [
+      {
+        title: "Test Title",
+        url: "https://test.com",
+        source: "Test Source",
+        category: "ai",
+        content:
+          "This is substantial content for testing that exceeds the minimum character threshold for summarization.",
+        published: new Date("2024-01-15"),
+      },
+    ];
 
     const result = await summarizeArticles(articles, "test-api-key");
 
@@ -173,22 +194,26 @@ describe("summarizeArticles", () => {
     const fetchMock = mock(async () => ({
       ok: true,
       json: async () => ({
-        choices: [{
-          message: {
-            content: '[{"index": 0, "summary": "短いコンテンツの記事"}]'
-          }
-        }]
-      })
+        choices: [
+          {
+            message: {
+              content: '[{"index": 0, "summary": "短いコンテンツの記事"}]',
+            },
+          },
+        ],
+      }),
     }));
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    const titleOnlyArticles: ArticleToSummarize[] = [{
-      title: "Short Content Article",
-      url: "https://test.com/short",
-      source: "Test Source",
-      category: "ai",
-      content: "Too short", // Less than 50 chars
-    }];
+    const titleOnlyArticles: ArticleToSummarize[] = [
+      {
+        title: "Short Content Article",
+        url: "https://test.com/short",
+        source: "Test Source",
+        category: "ai",
+        content: "Too short", // Less than 50 chars
+      },
+    ];
 
     const result = await summarizeArticles(titleOnlyArticles, "test-api-key");
 
@@ -201,22 +226,26 @@ describe("summarizeArticles", () => {
     const fetchMock = mock(async () => ({
       ok: true,
       json: async () => ({
-        choices: [{
-          message: {
-            content: '[{"index": 0, "summary": "HN人気記事"}]'
-          }
-        }]
-      })
+        choices: [
+          {
+            message: {
+              content: '[{"index": 0, "summary": "HN人気記事"}]',
+            },
+          },
+        ],
+      }),
     }));
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    const hnArticle: ArticleToSummarize[] = [{
-      title: "HN Popular Article",
-      url: "https://example.com/hn",
-      source: "Hacker News",
-      category: "tech",
-      content: "HN Score: 500点、150コメント", // High score
-    }];
+    const hnArticle: ArticleToSummarize[] = [
+      {
+        title: "HN Popular Article",
+        url: "https://example.com/hn",
+        source: "Hacker News",
+        category: "tech",
+        content: "HN Score: 500点、150コメント", // High score
+      },
+    ];
 
     const result = await summarizeArticles(hnArticle, "test-api-key");
 
@@ -229,22 +258,26 @@ describe("summarizeArticles", () => {
     const fetchMock = mock(async () => ({
       ok: true,
       json: async () => ({
-        choices: [{
-          message: {
-            content: '[{"index": 0, "summary": "HN低スコア記事"}]'
-          }
-        }]
-      })
+        choices: [
+          {
+            message: {
+              content: '[{"index": 0, "summary": "HN低スコア記事"}]',
+            },
+          },
+        ],
+      }),
     }));
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    const hnArticle: ArticleToSummarize[] = [{
-      title: "HN Low Score Article",
-      url: "https://example.com/hn-low",
-      source: "Hacker News",
-      category: "tech",
-      content: "HN Score: 50点、10コメント", // Low score
-    }];
+    const hnArticle: ArticleToSummarize[] = [
+      {
+        title: "HN Low Score Article",
+        url: "https://example.com/hn-low",
+        source: "Hacker News",
+        category: "tech",
+        content: "HN Score: 50点、10コメント", // Low score
+      },
+    ];
 
     const result = await summarizeArticles(hnArticle, "test-api-key");
 
@@ -254,24 +287,32 @@ describe("summarizeArticles", () => {
 
   test("replaces low-quality summary with original title", async () => {
     globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({
-        choices: [{
-          message: {
-            content: JSON.stringify([
-              { index: 0, summary: "詳細は記事参照" }, // Low quality summary
-            ])
-          }
-        }]
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify([
+                  { index: 0, summary: "詳細は記事参照" }, // Low quality summary
+                ]),
+              },
+            },
+          ],
+        }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
 
-    const articles: ArticleToSummarize[] = [{
-      title: "Interesting Tech Article",
-      url: "https://test.com",
-      source: "Tech Blog",
-      category: "tech",
-      content: "This is substantial content for testing that exceeds the minimum character threshold for summarization.",
-    }];
+    const articles: ArticleToSummarize[] = [
+      {
+        title: "Interesting Tech Article",
+        url: "https://test.com",
+        source: "Tech Blog",
+        category: "tech",
+        content:
+          "This is substantial content for testing that exceeds the minimum character threshold for summarization.",
+      },
+    ];
 
     const result = await summarizeArticles(articles, "test-api-key");
 
@@ -288,24 +329,28 @@ describe("summarizeArticles", () => {
         return {
           ok: true,
           json: async () => ({
-            choices: [{
-              message: {
-                content: '[{"index": 0, "summary": "HN記事の日本語タイトル"}]'
-              }
-            }]
-          })
+            choices: [
+              {
+                message: {
+                  content: '[{"index": 0, "summary": "HN記事の日本語タイトル"}]',
+                },
+              },
+            ],
+          }),
         };
       } else {
         // Second call: summarization for withContent article
         return {
           ok: true,
           json: async () => ({
-            choices: [{
-              message: {
-                content: '[{"index": 0, "summary": "詳細な要約文"}]'
-              }
-            }]
-          })
+            choices: [
+              {
+                message: {
+                  content: '[{"index": 0, "summary": "詳細な要約文"}]',
+                },
+              },
+            ],
+          }),
         };
       }
     });
@@ -324,7 +369,8 @@ describe("summarizeArticles", () => {
         url: "https://example.com/blog",
         source: "Tech Blog",
         category: "tech",
-        content: "This is a detailed blog post with substantial content that exceeds the minimum threshold for summarization.",
+        content:
+          "This is a detailed blog post with substantial content that exceeds the minimum threshold for summarization.",
       },
     ];
 

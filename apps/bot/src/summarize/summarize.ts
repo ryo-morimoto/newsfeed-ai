@@ -38,10 +38,10 @@ function isLowQualitySummary(summary: string, title: string): boolean {
     /^詳細は記事参照$/,
     /^詳細は記事を参照$/,
     /^記事を参照$/,
-    /詳細は記事参照$/,  // Even if it's just appended
-    /^.{0,10}詳細は記事参照$/,  // Very short text + fallback
-    /^新しい.{0,20}が(発表|公開|リリース)された?$/,  // Generic "new X released"
-    /^.{0,20}について(の記事|解説|紹介)$/,  // Generic "about X"
+    /詳細は記事参照$/, // Even if it's just appended
+    /^.{0,10}詳細は記事参照$/, // Very short text + fallback
+    /^新しい.{0,20}が(発表|公開|リリース)された?$/, // Generic "new X released"
+    /^.{0,20}について(の記事|解説|紹介)$/, // Generic "about X"
   ];
 
   for (const pattern of lowQualityPatterns) {
@@ -49,14 +49,18 @@ function isLowQualitySummary(summary: string, title: string): boolean {
   }
 
   // If summary is mostly just repeating the title (similarity check)
-  const normalizedSummary = summary.toLowerCase().replace(/[^a-z0-9\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]/g, "");
-  const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]/g, "");
+  const normalizedSummary = summary
+    .toLowerCase()
+    .replace(/[^a-z0-9\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]/g, "");
+  const normalizedTitle = title
+    .toLowerCase()
+    .replace(/[^a-z0-9\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]/g, "");
 
   if (normalizedTitle.length > 10) {
     // Check if summary is just a subset or superset of title without new info
     if (normalizedSummary === normalizedTitle) return true;
     // Check high overlap
-    const overlap = [...normalizedSummary].filter(c => normalizedTitle.includes(c)).length;
+    const overlap = [...normalizedSummary].filter((c) => normalizedTitle.includes(c)).length;
     const overlapRatio = overlap / Math.max(normalizedSummary.length, 1);
     if (overlapRatio > 0.8 && normalizedSummary.length < normalizedTitle.length * 1.3) {
       return true;
@@ -75,7 +79,7 @@ async function callGroqApi(prompt: string, apiKey: string): Promise<string | nul
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
@@ -259,15 +263,19 @@ export async function summarizeArticles(
   }
 
   // Separate articles with substantial content from title-only articles
-  const withContent = toSummarize.filter(a => hasSubstantialContent(a));
-  const titleOnly = toSummarize.filter(a => !hasSubstantialContent(a));
+  const withContent = toSummarize.filter((a) => hasSubstantialContent(a));
+  const titleOnly = toSummarize.filter((a) => !hasSubstantialContent(a));
 
-  console.log(`  Articles to summarize: ${toSummarize.length} total, ${withContent.length} with content, ${titleOnly.length} title-only`);
+  console.log(
+    `  Articles to summarize: ${toSummarize.length} total, ${withContent.length} with content, ${titleOnly.length} title-only`
+  );
   if (titleOnly.length > 0) {
-    console.log(`  Title-only sources: ${[...new Set(titleOnly.map(a => a.source))].join(", ")}`);
+    console.log(`  Title-only sources: ${[...new Set(titleOnly.map((a) => a.source))].join(", ")}`);
     // Log content lengths for debugging
     for (const a of titleOnly.slice(0, 3)) {
-      console.log(`    - ${a.source}: "${a.content?.slice(0, 30) || "(empty)"}" (${a.content?.length || 0} chars)`);
+      console.log(
+        `    - ${a.source}: "${a.content?.slice(0, 30) || "(empty)"}" (${a.content?.length || 0} chars)`
+      );
     }
   }
 

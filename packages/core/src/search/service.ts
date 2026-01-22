@@ -1,9 +1,4 @@
-import {
-  searchIndex,
-  initSearchIndex,
-  rebuildIndexFromSQLite,
-  persistIndex,
-} from "./orama";
+import { searchIndex, initSearchIndex, rebuildIndexFromSQLite, persistIndex } from "./orama";
 import type { Article, SearchResult, SearchConfig, SearchOptions } from "./types";
 
 let initialized = false;

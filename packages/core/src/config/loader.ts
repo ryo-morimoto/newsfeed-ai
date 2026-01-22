@@ -8,7 +8,10 @@ let config: Config | null = null;
  * @param yamlContent - Raw YAML string
  * @param yamlParser - YAML parser function (e.g., Bun.YAML.parse or js-yaml)
  */
-export function loadConfigFromYaml(yamlContent: string, yamlParser: (content: string) => unknown): Config {
+export function loadConfigFromYaml(
+  yamlContent: string,
+  yamlParser: (content: string) => unknown
+): Config {
   if (config) return config;
   config = yamlParser(yamlContent) as Config;
   return config;
@@ -35,9 +38,7 @@ export function resetConfig(): void {
  * Get enabled RSS sources
  */
 export function getRssSources(): RssSource[] {
-  return getConfig().sources.filter(
-    (s): s is RssSource => s.type === "rss" && s.enabled
-  );
+  return getConfig().sources.filter((s): s is RssSource => s.type === "rss" && s.enabled);
 }
 
 /**

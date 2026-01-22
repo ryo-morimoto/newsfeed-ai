@@ -6,9 +6,9 @@ on:
     branches:
       - main
     paths:
-      - 'apps/web/**'
-      - 'packages/core/**'
-      - '.github/workflows/deploy-web.yml'
+      - "apps/web/**"
+      - "packages/core/**"
+      - ".github/workflows/deploy-web.yml"
 
 jobs:
   deploy:

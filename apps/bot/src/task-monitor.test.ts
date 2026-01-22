@@ -288,10 +288,10 @@ describe("task-monitor with mocked API", () => {
         );
       }
       if (url.includes("/api/task-attempts")) {
-        return new Response(
-          JSON.stringify({ success: true, data: [] }),
-          { status: 200, headers: { "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ success: true, data: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
       return new Response(null, { status: 404 });
     });
@@ -404,10 +404,10 @@ describe("task-monitor with mocked API", () => {
         );
       }
       if (url.includes("/api/task-attempts")) {
-        return new Response(
-          JSON.stringify({ success: true, data: [] }),
-          { status: 200, headers: { "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ success: true, data: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
       return new Response(null, { status: 404 });
     });

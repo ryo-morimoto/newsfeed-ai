@@ -139,10 +139,7 @@ describe("search service", () => {
 
       await initSearchService(config, getAllArticles);
 
-      const results = await searchArticles(
-        { query: "Test", limit: 3 },
-        getAllArticles
-      );
+      const results = await searchArticles({ query: "Test", limit: 3 }, getAllArticles);
 
       expect(results.length).toBeLessThanOrEqual(3);
     });
@@ -209,10 +206,7 @@ describe("search service", () => {
       await initSearchService(config, getAllArticles);
 
       // Search should still work via fallback
-      const results = await searchArticles(
-        { query: "typescript" },
-        getAllArticles
-      );
+      const results = await searchArticles({ query: "typescript" }, getAllArticles);
 
       // Fallback search should find the article by matching text
       expect(results.length).toBeGreaterThanOrEqual(0);

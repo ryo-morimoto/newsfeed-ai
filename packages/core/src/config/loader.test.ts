@@ -20,10 +20,28 @@ const mockYamlParser = (content: string): unknown => {
 // Sample config for testing
 const sampleConfig: Config = {
   sources: [
-    { type: "rss", name: "TechCrunch", url: "https://techcrunch.com/feed/", category: "tech", enabled: true },
-    { type: "rss", name: "Disabled RSS", url: "https://disabled.com/feed/", category: "tech", enabled: false },
+    {
+      type: "rss",
+      name: "TechCrunch",
+      url: "https://techcrunch.com/feed/",
+      category: "tech",
+      enabled: true,
+    },
+    {
+      type: "rss",
+      name: "Disabled RSS",
+      url: "https://disabled.com/feed/",
+      category: "tech",
+      enabled: false,
+    },
     { type: "hackernews", name: "Hacker News", category: "tech", enabled: true },
-    { type: "github-trending", name: "GitHub Trending", category: "oss", enabled: true, languages: ["typescript", "rust"] },
+    {
+      type: "github-trending",
+      name: "GitHub Trending",
+      category: "oss",
+      enabled: true,
+      languages: ["typescript", "rust"],
+    },
   ],
   interests: ["AI", "Web Development", "Open Source"],
   categories: {
@@ -80,9 +98,7 @@ describe("config loader", () => {
 
     test("returns empty array when no RSS sources enabled", () => {
       const configNoRss: Config = {
-        sources: [
-          { type: "hackernews", name: "HN", category: "tech", enabled: true },
-        ],
+        sources: [{ type: "hackernews", name: "HN", category: "tech", enabled: true }],
         interests: [],
         categories: {},
       };
@@ -102,9 +118,7 @@ describe("config loader", () => {
 
     test("returns undefined when HN not enabled", () => {
       const configNoHn: Config = {
-        sources: [
-          { type: "hackernews", name: "HN", category: "tech", enabled: false },
-        ],
+        sources: [{ type: "hackernews", name: "HN", category: "tech", enabled: false }],
         interests: [],
         categories: {},
       };

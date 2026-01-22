@@ -1,71 +1,67 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
-import { performSearch } from '~/lib/server-fns'
-import { ArticleCard } from '~/components/ArticleCard'
-import type { SearchResult } from '~/lib/search'
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { performSearch } from "~/lib/server-fns";
+import { ArticleCard } from "~/components/ArticleCard";
+import type { SearchResult } from "~/lib/search";
 
 export interface SearchParams {
-  q?: string
+  q?: string;
 }
 
-export const Route = createFileRoute('/search')({
+export const Route = createFileRoute("/search")({
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
-    q: typeof search.q === 'string' ? search.q : undefined,
+    q: typeof search.q === "string" ? search.q : undefined,
   }),
   loaderDeps: ({ search }) => ({ q: search.q }),
   loader: async ({ deps }): Promise<{ results: SearchResult[]; query: string }> => {
     if (!deps.q) {
-      return { results: [], query: '' }
+      return { results: [], query: "" };
     }
-    const results = await performSearch({ data: deps.q })
-    return { results, query: deps.q }
+    const results = await performSearch({ data: deps.q });
+    return { results, query: deps.q };
   },
   head: ({ loaderData }) => ({
     meta: [
       {
         title: loaderData?.query
           ? `"${loaderData.query}" の検索結果 - Newsfeed AI`
-          : '検索 - Newsfeed AI',
+          : "検索 - Newsfeed AI",
       },
     ],
   }),
   component: SearchPage,
-})
+});
 
 function SearchPage() {
-  const { results, query } = Route.useLoaderData()
-  const { q } = Route.useSearch()
-  const navigate = useNavigate()
-  const [inputValue, setInputValue] = useState(q || '')
-  const [isSearching, setIsSearching] = useState(false)
+  const { results, query } = Route.useLoaderData();
+  const { q } = Route.useSearch();
+  const navigate = useNavigate();
+  const [inputValue, setInputValue] = useState(q || "");
+  const [isSearching, setIsSearching] = useState(false);
 
   // Sync input with URL query param
   useEffect(() => {
-    setInputValue(q || '')
-  }, [q])
+    setInputValue(q || "");
+  }, [q]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!inputValue.trim()) return
+    e.preventDefault();
+    if (!inputValue.trim()) return;
 
-    setIsSearching(true)
+    setIsSearching(true);
     await navigate({
-      to: '/search',
+      to: "/search",
       search: { q: inputValue.trim() },
-    })
-    setIsSearching(false)
-  }
+    });
+    setIsSearching(false);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
       {/* Page Header */}
       <header className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-text-primary mb-2">
-          検索
-        </h1>
-        <p className="text-text-secondary">
-          記事をキーワードで検索
-        </p>
+        <h1 className="text-3xl md:text-4xl font-bold text-text-primary mb-2">検索</h1>
+        <p className="text-text-secondary">記事をキーワードで検索</p>
       </header>
 
       {/* Search Form - use div with role for broader compatibility */}
@@ -110,7 +106,8 @@ function SearchPage() {
         <section aria-label="検索結果">
           <div className="mb-6">
             <p className="text-text-secondary">
-              「<span className="font-medium text-text-primary">{query}</span>」の検索結果: {results.length}件
+              「<span className="font-medium text-text-primary">{query}</span>」の検索結果:{" "}
+              {results.length}件
             </p>
           </div>
 
@@ -142,5 +139,5 @@ function SearchPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

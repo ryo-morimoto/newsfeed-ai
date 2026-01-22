@@ -122,6 +122,7 @@ export async function initSearchIndex(config: {
 ```
 
 Bot adapter (Bun):
+
 ```typescript
 // apps/bot/src/adapters/fs.ts
 export const bunFileSystem: FileSystem = {
@@ -138,6 +139,7 @@ export const bunFileSystem: FileSystem = {
 ```
 
 Web adapter (Node.js):
+
 ```typescript
 // apps/web/src/adapters/fs.ts
 import * as fs from "node:fs";
@@ -221,6 +223,7 @@ export * as types from "./db/types";
 ```
 
 Usage:
+
 ```typescript
 import { db, search, config, types } from "@newsfeed-ai/core";
 
@@ -231,6 +234,7 @@ const results = await search.searchIndex("AI", 20);
 ## Package Dependencies
 
 ### packages/core/package.json
+
 ```json
 {
   "name": "@newsfeed-ai/core",
@@ -262,6 +266,7 @@ const results = await search.searchIndex("AI", 20);
 ```
 
 ### apps/bot/package.json
+
 ```json
 {
   "name": "@newsfeed-ai/bot",
@@ -283,6 +288,7 @@ const results = await search.searchIndex("AI", 20);
 ```
 
 ### apps/web/package.json
+
 ```json
 {
   "name": "@newsfeed-ai/web",
@@ -314,6 +320,7 @@ const results = await search.searchIndex("AI", 20);
 ## Implementation Phases
 
 ### Phase 1: Create packages/core (no breaking changes)
+
 1. Create `packages/core/` directory structure
 2. Extract types (Article, Config, etc.)
 3. Extract db operations (with config injection)
@@ -321,18 +328,21 @@ const results = await search.searchIndex("AI", 20);
 5. Extract category definitions
 
 ### Phase 2: Migrate Bot
+
 1. Move `src/` → `apps/bot/src/`
 2. Create Bun adapters
 3. Update imports to use `@newsfeed-ai/core`
 4. Verify tests pass
 
 ### Phase 3: Migrate Web
+
 1. Move `web/` → `apps/web/`
 2. Create Node.js adapters
 3. Update imports
 4. Verify Vite build works
 
 ### Phase 4: Cleanup
+
 1. Remove duplicated code
 2. Update systemd service files
 3. Update deploy scripts

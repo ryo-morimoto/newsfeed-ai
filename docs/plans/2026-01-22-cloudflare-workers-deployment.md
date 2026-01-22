@@ -13,6 +13,7 @@
 ## Task 1: Add search_index Table Migration
 
 **Files:**
+
 - Create: `packages/core/src/db/migrations/003_search_index.sql`
 - Modify: `packages/core/src/db/client.ts`
 
@@ -62,6 +63,7 @@ git commit -m "feat(db): add search_index table for Orama persistence"
 ## Task 2: Add persistIndexToDb Function to Core
 
 **Files:**
+
 - Modify: `packages/core/src/search/orama.ts`
 - Modify: `packages/core/src/search/index.ts`
 
@@ -99,7 +101,9 @@ export async function persistIndexToDb(
  * Restore the search index from database (Turso)
  */
 export async function restoreIndexFromDb(
-  db: { execute: (args: { sql: string; args: unknown[] }) => Promise<{ rows: { data: ArrayBuffer }[] }> },
+  db: {
+    execute: (args: { sql: string; args: unknown[] }) => Promise<{ rows: { data: ArrayBuffer }[] }>;
+  },
   indexId: string = "default"
 ): Promise<boolean> {
   try {
@@ -152,6 +156,7 @@ git commit -m "feat(search): add Turso persistence functions for Orama index"
 ## Task 3: Update Bot to Save Index to Turso
 
 **Files:**
+
 - Modify: `apps/bot/src/search/orama-index.ts`
 
 **Step 1: Import and use persistIndexToDb**
@@ -196,6 +201,7 @@ git commit -m "feat(bot): persist Orama index to Turso for Workers"
 ## Task 4: Create Turso FileSystem Adapter for Web
 
 **Files:**
+
 - Create: `apps/web/src/adapters/turso-fs.ts`
 
 **Step 1: Create the adapter file**
@@ -279,6 +285,7 @@ git commit -m "feat(web): add Turso FileSystem adapter for Workers"
 ## Task 5: Update Web Search to Use Turso Adapter on Workers
 
 **Files:**
+
 - Modify: `apps/web/src/lib/search.ts`
 
 **Step 1: Add runtime detection and adapter switching**
@@ -290,7 +297,8 @@ export type { SearchResult } from "@newsfeed-ai/core/search";
 import { getAllArticles, ensureInitialized as ensureDbInitialized } from "./db";
 
 // Detect if running on Cloudflare Workers
-const isCloudflareWorkers = typeof globalThis.caches !== "undefined" &&
+const isCloudflareWorkers =
+  typeof globalThis.caches !== "undefined" &&
   typeof (globalThis as any).WebSocketPair !== "undefined";
 
 // Lazy load the appropriate adapter
@@ -383,6 +391,7 @@ git commit -m "feat(web): add runtime detection for Turso adapter on Workers"
 ## Task 6: Install Cloudflare Workers Dependencies
 
 **Files:**
+
 - Modify: `apps/web/package.json`
 
 **Step 1: Install dependencies**
@@ -418,6 +427,7 @@ git commit -m "chore(web): add Cloudflare Workers dependencies"
 ## Task 7: Create wrangler.toml Configuration
 
 **Files:**
+
 - Create: `apps/web/wrangler.toml`
 
 **Step 1: Create wrangler.toml**
@@ -458,6 +468,7 @@ git commit -m "feat(web): add Cloudflare Workers configuration"
 ## Task 8: Update Vite Config for Cloudflare
 
 **Files:**
+
 - Modify: `apps/web/vite.config.ts`
 
 **Step 1: Check TanStack Start Cloudflare support**
@@ -478,7 +489,7 @@ The TanStack Start configuration may need adjustment. Check current config and u
 tanstackStart({
   // If target option is supported:
   target: "cloudflare-workers",
-})
+});
 ```
 
 Note: This step may require checking TanStack Start documentation for exact Cloudflare Workers configuration.
@@ -503,6 +514,7 @@ git commit -m "feat(web): configure Vite for Cloudflare Workers build"
 ## Task 9: Create GitHub Actions Workflow
 
 **Files:**
+
 - Create: `.github/workflows/deploy-web.yml`
 
 **Step 1: Create workflow file**
@@ -516,9 +528,9 @@ on:
     branches:
       - main
     paths:
-      - 'apps/web/**'
-      - 'packages/core/**'
-      - '.github/workflows/deploy-web.yml'
+      - "apps/web/**"
+      - "packages/core/**"
+      - ".github/workflows/deploy-web.yml"
 
 jobs:
   deploy:
@@ -616,6 +628,7 @@ bun run deploy:production
 **Step 3: Configure custom domain**
 
 In Cloudflare Dashboard:
+
 1. Go to Workers & Pages → newsfeed-ai-web
 2. Settings → Triggers → Custom Domains
 3. Add `newsfeed.ryo-o.dev`
@@ -633,6 +646,7 @@ Expected: App works on production URL.
 ## Task 12: Update Bot to Trigger Index Rebuild
 
 **Files:**
+
 - Modify: `apps/bot/src/main.ts`
 
 **Step 1: Ensure index is saved to Turso after newsfeed run**
@@ -676,8 +690,10 @@ After completing all tasks:
 5. **Production**: App running at https://newsfeed.ryo-o.dev
 
 **GitHub Secrets to configure:**
+
 - `CLOUDFLARE_API_TOKEN` - Create at Cloudflare Dashboard → My Profile → API Tokens
 
 **Cloudflare Secrets to configure:**
+
 - `TURSO_DATABASE_URL`
 - `TURSO_AUTH_TOKEN`

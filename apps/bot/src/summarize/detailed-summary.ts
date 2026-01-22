@@ -16,9 +16,9 @@ export interface DetailedSummaryResult {
   url: string;
   source: string;
   category: string;
-  shortSummary: string;   // 1-2文の短い要約（既存の要約）
+  shortSummary: string; // 1-2文の短い要約（既存の要約）
   detailedSummary: string; // 詳細な要旨（5-10文）
-  keyPoints: string[];     // 重要ポイントのリスト
+  keyPoints: string[]; // 重要ポイントのリスト
   targetAudience?: string; // 対象読者
   fetchedAt: Date;
 }
@@ -61,7 +61,7 @@ export async function fetchArticleContentWithOgImage(url: string): Promise<Fetch
     const response = await fetch(url, {
       headers: {
         "User-Agent": "NewsBot/1.0 (Article Summary Service)",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
       redirect: "follow",
     });
@@ -189,7 +189,7 @@ ${content.slice(0, 12000)}
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",

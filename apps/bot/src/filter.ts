@@ -41,10 +41,7 @@ function calculateFreshnessFactor(published?: Date): number {
 
   // Linear decay: 1.0 at day 0, decreasing by DECAY_PER_DAY each day
   // Minimum is FRESHNESS_MIN_FACTOR
-  const factor = Math.max(
-    FRESHNESS_MIN_FACTOR,
-    1 - ageInDays * FRESHNESS_DECAY_PER_DAY
-  );
+  const factor = Math.max(FRESHNESS_MIN_FACTOR, 1 - ageInDays * FRESHNESS_DECAY_PER_DAY);
 
   return factor;
 }
@@ -52,6 +49,101 @@ function calculateFreshnessFactor(published?: Date): number {
 async function getInterestsPrompt(): Promise<string> {
   const interests = await getInterests();
   return interests.map((i) => `- ${i}`).join("\n");
+}
+
+const RATE_LIMIT_DELAY_MS = 6000; // 6 seconds between batches (Groq free tier: 12k TPM)
+
+async function processBatch(
+  batch: ArticleToFilter[],
+  apiKey: string,
+  interestsPrompt: string
+): Promise<FilteredArticle[]> {
+  const prompt = `You are filtering news articles for a developer. Score each article 0-1 based on relevance to these interests:
+${interestsPrompt}
+
+Articles to evaluate:
+${batch.map((a, idx) => `[${idx}] ${a.title} (${a.source}) - ${a.content?.slice(0, 200) || "no description"}`).join("\n")}
+
+Respond with JSON array only, no explanation:
+[{"index": 0, "score": 0.8, "reason": "brief reason"}, ...]
+
+Only include articles with score >= 0.5`;
+
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 1024,
+        temperature: 0.1,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`Groq API error: ${res.status}`, errorText);
+      return batch.map((a) => ({ ...a, score: 0.5, reason: "api error" }));
+    }
+
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const content = data.choices?.[0]?.message?.content || "[]";
+
+    const jsonMatch = content.match(/\[.*\]/s);
+    if (!jsonMatch) {
+      return [];
+    }
+
+    const scored: { index: number; score: number; reason: string }[] = JSON.parse(jsonMatch[0]);
+    return scored
+      .filter((s): s is typeof s & { index: number } => batch[s.index] !== undefined && s.score >= 0.5)
+      .map((s) => {
+        const article = batch[s.index]!;
+        return {
+          title: article.title,
+          url: article.url,
+          source: article.source,
+          category: article.category,
+          content: article.content,
+          published: article.published,
+          og_image: article.og_image,
+          score: s.score,
+          reason: s.reason,
+        };
+      });
+  } catch (error) {
+    console.error("Filter error", error);
+    return batch.map((a) => ({ ...a, score: 0.5, reason: "error" }));
+  }
+}
+
+async function processWithRateLimit<T, R>(
+  items: T[],
+  batchSize: number,
+  delayMs: number,
+  processor: (batch: T[]) => Promise<R[]>
+): Promise<R[]> {
+  const batches: T[][] = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    batches.push(items.slice(i, i + batchSize));
+  }
+
+  const results = await batches.reduce<Promise<R[]>>(async (accPromise, batch, index) => {
+    const acc = await accPromise;
+    if (index > 0) {
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+    const batchResults = await processor(batch);
+    return [...acc, ...batchResults];
+  }, Promise.resolve([]));
+
+  return results;
 }
 
 export async function filterArticles(
@@ -65,104 +157,23 @@ export async function filterArticles(
 
   if (articles.length === 0) return [];
 
-  // Batch articles - smaller batches to stay under rate limit
-  const batchSize = 10;
-  const results: FilteredArticle[] = [];
   const interestsPrompt = await getInterestsPrompt();
 
-  for (let i = 0; i < articles.length; i += batchSize) {
-    const batch = articles.slice(i, i + batchSize);
+  const results = await processWithRateLimit(articles, 10, RATE_LIMIT_DELAY_MS, (batch) =>
+    processBatch(batch, apiKey, interestsPrompt)
+  );
 
-    const prompt = `You are filtering news articles for a developer. Score each article 0-1 based on relevance to these interests:
-${interestsPrompt}
-
-Articles to evaluate:
-${batch.map((a, idx) => `[${idx}] ${a.title} (${a.source}) - ${a.content?.slice(0, 200) || "no description"}`).join("\n")}
-
-Respond with JSON array only, no explanation:
-[{"index": 0, "score": 0.8, "reason": "brief reason"}, ...]
-
-Only include articles with score >= 0.5`;
-
-    try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          max_tokens: 1024,
-          temperature: 0.1,
-          messages: [
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-        }),
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error(`Groq API error: ${res.status}`, errorText);
-        results.push(
-          ...batch.map((a) => ({ ...a, score: 0.5, reason: "api error" }))
-        );
-        continue;
-      }
-
-      const data = (await res.json()) as {
-        choices?: { message?: { content?: string } }[];
-      };
-      const content = data.choices?.[0]?.message?.content || "[]";
-
-      // Parse JSON from response
-      const jsonMatch = content.match(/\[.*\]/s);
-      if (jsonMatch) {
-        const scored: { index: number; score: number; reason: string }[] =
-          JSON.parse(jsonMatch[0]);
-
-        for (const s of scored) {
-          const article = batch[s.index];
-          if (article && s.score >= 0.5) {
-            results.push({
-              ...article,
-              score: s.score,
-              reason: s.reason,
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Filter error", error);
-      results.push(
-        ...batch.map((a) => ({ ...a, score: 0.5, reason: "error" }))
-      );
-    }
-
-    // Rate limit: wait between batches (Groq free tier: 12k TPM)
-    if (i + batchSize < articles.length) {
-      await new Promise((r) => setTimeout(r, 6000)); // 6 seconds
-    }
-  }
-
-  // Apply freshness factor and sort by adjusted score
+  // Apply freshness factor
   const withFreshness = results.map((article) => {
     const freshnessFactor = calculateFreshnessFactor(article.published);
-    const adjustedScore = article.score * freshnessFactor;
     return {
       ...article,
-      score: adjustedScore,
+      score: article.score * freshnessFactor,
       originalScore: article.score,
       freshnessFactor,
     };
   });
 
-  // Filter out articles that are too old (freshnessFactor = 0)
-  const freshEnough = withFreshness.filter((a) => a.freshnessFactor > 0);
-
-  // Sort by adjusted score (relevance × freshness)
-  return freshEnough.sort((a, b) => b.score - a.score);
+  // Filter out articles that are too old and sort by adjusted score
+  return withFreshness.filter((a) => a.freshnessFactor > 0).toSorted((a, b) => b.score - a.score);
 }

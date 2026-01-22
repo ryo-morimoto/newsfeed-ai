@@ -2,8 +2,12 @@
  * Search index initialization for bot app
  * Provides Bun-specific initialization with TensorFlow.js embeddings
  */
-import { search, paths, db } from "@newsfeed-ai/core";
+import * as search from "@newsfeed-ai/core/search";
+import * as db from "@newsfeed-ai/core/db";
 import { bunFileSystem } from "../adapters/fs";
+
+// Default search index path (relative to monorepo root)
+const DEFAULT_INDEX_PATH = "./data/orama-index.msp";
 
 // Embeddings plugin (created lazily)
 let embeddingsPlugin: unknown = null;
@@ -41,7 +45,7 @@ async function createEmbeddingsPlugin(): Promise<unknown> {
  */
 export function getSearchConfig(): search.SearchConfig {
   return {
-    indexPath: paths.searchIndex,
+    indexPath: process.env.SEARCH_INDEX_PATH || DEFAULT_INDEX_PATH,
     fs: bunFileSystem,
   };
 }

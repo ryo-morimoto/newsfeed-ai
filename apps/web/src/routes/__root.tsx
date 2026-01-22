@@ -1,13 +1,8 @@
-import 'virtual:uno.css'
-import '~/styles/base.css'
-import '~/styles/animations.css'
-import {
-  createRootRoute,
-  Outlet,
-  HeadContent,
-  Scripts,
-} from '@tanstack/react-router'
-import { ThemeToggle } from '~/components/ThemeToggle'
+import "virtual:uno.css";
+import "~/styles/base.css";
+import "~/styles/animations.css";
+import { createRootRoute, Outlet, HeadContent, Scripts } from "@tanstack/react-router";
+import { ThemeToggle } from "~/components/ThemeToggle";
 
 // Inline script to prevent theme flash on load
 const themeScript = `
@@ -19,19 +14,19 @@ const themeScript = `
     }
   } catch (e) {}
 })();
-`
+`;
 
 export const Route = createRootRoute({
   component: RootComponent,
   head: () => ({
     meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'Newsfeed AI' },
-      { name: 'description', content: 'AI-powered personalized tech news aggregator' },
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "Newsfeed AI" },
+      { name: "description", content: "AI-powered personalized tech news aggregator" },
     ],
   }),
-})
+});
 
 function RootComponent() {
   return (
@@ -88,5 +83,5 @@ function RootComponent() {
         <Scripts />
       </body>
     </html>
-  )
+  );
 }
