@@ -1,6 +1,7 @@
+import 'virtual:uno.css'
 import {
   createStartHandler,
   defaultStreamHandler,
-} from "@tanstack/react-start/server";
+} from '@tanstack/react-start/server'
 
-export default createStartHandler(defaultStreamHandler);
+export default createStartHandler(defaultStreamHandler)
