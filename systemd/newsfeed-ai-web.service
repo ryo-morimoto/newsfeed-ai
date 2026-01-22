@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=__USER__
 Environment=HOME=/home/__USER__
-WorkingDirectory=/home/__USER__/newsfeed-ai/web
+WorkingDirectory=/home/__USER__/newsfeed-ai/apps/web
 ExecStart=/home/__USER__/.bun/bin/bun run start
 Restart=always
 RestartSec=10

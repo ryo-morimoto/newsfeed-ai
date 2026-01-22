@@ -1,14 +1,15 @@
 {
   "exclude": [
     "**/*.test.ts",
-    "src/__tests__/**",
-    "web/**"
+    "apps/bot/src/__tests__/**",
+    "apps/web/**",
+    "packages/**",
+    "scripts/**"
   ],
   "compilerOptions": {
     // Environment setup & latest features
     "lib": ["ESNext"],
     "target": "ESNext",
-    "types": ["bun-types"],
     "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
