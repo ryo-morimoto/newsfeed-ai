@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getCategoryColor } from "~/lib/category";
 
 // Minimal article fields needed for card display
@@ -29,7 +29,14 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
   const categoryColor = getCategoryColor(article.category);
   const encodedUrl = encodeURIComponent(article.url);
   const [imageError, setImageError] = useState(false);
-  const date = article.created_at
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Format date on client only to avoid hydration mismatch
+  const date = mounted && article.created_at
     ? new Date(article.created_at).toLocaleDateString("ja-JP", {
         year: "numeric",
         month: "short",
