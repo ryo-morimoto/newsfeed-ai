@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { getCategoryColor } from "~/lib/category";
+import { ClientDate } from "./ClientDate";
 
 // Minimal article fields needed for card display
 interface ArticleForCard {
@@ -29,20 +30,6 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
   const categoryColor = getCategoryColor(article.category);
   const encodedUrl = encodeURIComponent(article.url);
   const [imageError, setImageError] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Format date on client only to avoid hydration mismatch
-  const date = mounted && article.created_at
-    ? new Date(article.created_at).toLocaleDateString("ja-JP", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    : "";
 
   // Determine image dimensions based on featured status
   const imageWidth = featured ? 800 : 400;
@@ -126,9 +113,9 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-4 border-t border-border mt-auto">
-          <time dateTime={article.created_at || ""} className="text-xs text-text-muted">
-            {date}
-          </time>
+          {article.created_at && (
+            <ClientDate date={article.created_at} className="text-xs text-text-muted" />
+          )}
           <span className="text-sm font-medium text-accent group-hover:underline">
             詳細を読む
             <span className="sr-only">: {article.title}</span>

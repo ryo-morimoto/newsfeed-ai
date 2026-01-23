@@ -15,7 +15,9 @@ export default defineConfig({
       projects: ["./tsconfig.json"],
     }),
     cloudflare({ viteEnvironment: { name: "ssr" } }),
-    tanstackStart(),
+    tanstackStart({
+      target: "cloudflare-workers",
+    }),
     react(),
   ],
 });
