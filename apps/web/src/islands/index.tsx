@@ -1,4 +1,6 @@
 /** @jsxImportSource react */
+import "virtual:uno.css";
+import "../styles/main.css";
 import { hydrateRoot } from "react-dom/client";
 import { SearchForm } from "./SearchForm";
 import { ThemeToggle } from "./ThemeToggle";

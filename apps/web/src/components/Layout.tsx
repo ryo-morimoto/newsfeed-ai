@@ -25,7 +25,7 @@ export const Layout = ({ title = "Newsfeed AI", children }: LayoutProps) => {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{title}</title>
         <meta name="description" content="AI-powered personalized tech news aggregator" />
-        <link rel="stylesheet" href="/static/style.css" />
+        <link rel="stylesheet" href="/static/islands.css" />
         {html`<script>${themeScript}</script>`}
       </head>
       <body class="min-h-screen flex flex-col bg-bg-primary text-text-primary transition-colors">

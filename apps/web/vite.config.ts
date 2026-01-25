@@ -11,7 +11,6 @@ export default defineConfig(({ mode }) => {
         outDir: "dist/assets/static",
         rollupOptions: {
           input: {
-            style: "./src/styles/main.css",
             islands: "./src/islands/index.tsx",
           },
           output: {
@@ -28,7 +27,6 @@ export default defineConfig(({ mode }) => {
       UnoCSS(),
       build({
         entry: "src/index.tsx",
-        output: "dist/index.js",
       }),
       devServer({
         entry: "src/index.tsx",
