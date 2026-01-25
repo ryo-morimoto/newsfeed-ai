@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "deploy": "vite build && wrangler deploy",
-    "deploy:production": "vite build && wrangler deploy --env production"
+    "build": "vite build && vite build --mode client",
+    "deploy": "bun run build && wrangler deploy",
+    "deploy:production": "bun run build && wrangler deploy --env production"
   },
   "dependencies": {
     "@libsql/client": "^0.17.0",
