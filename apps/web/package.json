@@ -7,9 +7,9 @@
     "build": "vite build && vite build --mode client",
     "deploy": "bun run build && wrangler deploy",
     "deploy:production": "bun run build && wrangler deploy --env production",
-    "test:e2e": "playwright test -c e2e/playwright.config.ts",
-    "test:e2e:ui": "playwright test -c e2e/playwright.config.ts --ui",
-    "test:e2e:smoke": "playwright test -c e2e/playwright.config.ts smoke.spec.ts"
+    "test:e2e": "playwright test -c .e2e/playwright.config.ts",
+    "test:e2e:ui": "playwright test -c .e2e/playwright.config.ts --ui",
+    "test:e2e:smoke": "playwright test -c .e2e/playwright.config.ts smoke.spec.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.0",
