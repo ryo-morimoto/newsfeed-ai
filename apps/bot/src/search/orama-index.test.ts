@@ -1,11 +1,5 @@
 import { test, expect, describe, beforeEach, afterEach } from "bun:test";
-import {
-  create,
-  insert,
-  search,
-  type Orama,
-  type Results,
-} from "@orama/orama";
+import { create, insert, search, type Orama, type Results } from "@orama/orama";
 import type { Article } from "../db";
 
 // Simplified test schema without vector embeddings
@@ -29,7 +23,8 @@ const mockArticles: Omit<Article, "notified">[] = [
     source: "Tech Blog",
     category: "Programming",
     summary: "A comprehensive guide to TypeScript programming language",
-    detailed_summary: "TypeScript is a strongly typed programming language that builds on JavaScript",
+    detailed_summary:
+      "TypeScript is a strongly typed programming language that builds on JavaScript",
     created_at: "2024-01-01T00:00:00Z",
   },
   {
@@ -39,7 +34,8 @@ const mockArticles: Omit<Article, "notified">[] = [
     source: "React Blog",
     category: "Frontend",
     summary: "Understanding React hooks and their best practices",
-    detailed_summary: "React hooks revolutionized how we write components. useState, useEffect, and custom hooks explained.",
+    detailed_summary:
+      "React hooks revolutionized how we write components. useState, useEffect, and custom hooks explained.",
     created_at: "2024-01-02T00:00:00Z",
   },
   {
@@ -49,7 +45,8 @@ const mockArticles: Omit<Article, "notified">[] = [
     source: "AI Weekly",
     category: "AI",
     summary: "Introduction to artificial intelligence and machine learning",
-    detailed_summary: "Learn the fundamentals of AI, neural networks, and deep learning techniques.",
+    detailed_summary:
+      "Learn the fundamentals of AI, neural networks, and deep learning techniques.",
     created_at: "2024-01-03T00:00:00Z",
   },
 ];
@@ -59,9 +56,9 @@ describe("Orama Search Index (Fulltext)", () => {
 
   beforeEach(async () => {
     // Create a fresh index for each test
-    db = await create({
+    db = (await create({
       schema: TEST_SCHEMA,
-    }) as TestOramaDb;
+    })) as TestOramaDb;
   });
 
   test("create index succeeds", async () => {

@@ -40,7 +40,7 @@ describe("filterArticles", () => {
 
   test("returns all articles unfiltered when no API key", async () => {
     const result = await filterArticles(sampleArticles, "");
-    
+
     expect(result.length).toBe(sampleArticles.length);
     for (const article of result) {
       expect(article.score).toBe(0.5);
@@ -56,17 +56,22 @@ describe("filterArticles", () => {
   test("filters and scores articles based on API response", async () => {
     // Mock the Groq API response
     globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({
-        choices: [{
-          message: {
-            content: JSON.stringify([
-              { index: 0, score: 0.9, reason: "AI model release" },
-              { index: 1, score: 0.7, reason: "React update" },
-              // index 2 excluded (score < 0.5)
-            ])
-          }
-        }]
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify([
+                  { index: 0, score: 0.9, reason: "AI model release" },
+                  { index: 1, score: 0.7, reason: "React update" },
+                  // index 2 excluded (score < 0.5)
+                ]),
+              },
+            },
+          ],
+        }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
 
     const result = await filterArticles(sampleArticles, "test-api-key");
@@ -79,17 +84,22 @@ describe("filterArticles", () => {
 
   test("sorts results by score descending", async () => {
     globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({
-        choices: [{
-          message: {
-            content: JSON.stringify([
-              { index: 0, score: 0.6, reason: "Medium" },
-              { index: 1, score: 0.9, reason: "High" },
-              { index: 2, score: 0.5, reason: "Low" },
-            ])
-          }
-        }]
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify([
+                  { index: 0, score: 0.6, reason: "Medium" },
+                  { index: 1, score: 0.9, reason: "High" },
+                  { index: 2, score: 0.5, reason: "Low" },
+                ]),
+              },
+            },
+          ],
+        }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
 
     const result = await filterArticles(sampleArticles, "test-api-key");
@@ -117,17 +127,22 @@ describe("filterArticles", () => {
 
   test("handles malformed JSON in API response", async () => {
     globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({
-        choices: [{
-          message: {
-            content: "This is not valid JSON array"
-          }
-        }]
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: "This is not valid JSON array",
+              },
+            },
+          ],
+        }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
 
     const result = await filterArticles(sampleArticles, "test-api-key");
-    
+
     // No valid JSON array found, so no articles pass
     expect(result.length).toBe(0);
   });
@@ -138,7 +153,7 @@ describe("filterArticles", () => {
     }) as unknown as typeof fetch;
 
     const result = await filterArticles(sampleArticles, "test-api-key");
-    
+
     // Should return all articles with error reason
     expect(result.length).toBe(sampleArticles.length);
     for (const article of result) {
@@ -148,13 +163,19 @@ describe("filterArticles", () => {
 
   test("extracts JSON from markdown code blocks", async () => {
     globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({
-        choices: [{
-          message: {
-            content: "Here's the result:\n```json\n[{\"index\": 0, \"score\": 0.8, \"reason\": \"relevant\"}]\n```"
-          }
-        }]
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content:
+                  'Here\'s the result:\n```json\n[{"index": 0, "score": 0.8, "reason": "relevant"}]\n```',
+              },
+            },
+          ],
+        }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
 
     const result = await filterArticles(sampleArticles, "test-api-key");
@@ -177,15 +198,18 @@ describe("filterArticles", () => {
     ];
 
     globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({
-        choices: [{
-          message: {
-            content: JSON.stringify([
-              { index: 0, score: 1.0, reason: "Very relevant" },
-            ])
-          }
-        }]
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify([{ index: 0, score: 1.0, reason: "Very relevant" }]),
+              },
+            },
+          ],
+        }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
 
     const result = await filterArticles(oldArticles, "test-api-key");
@@ -210,15 +234,18 @@ describe("filterArticles", () => {
     ];
 
     globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({
-        choices: [{
-          message: {
-            content: JSON.stringify([
-              { index: 0, score: 1.0, reason: "Very relevant" },
-            ])
-          }
-        }]
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify([{ index: 0, score: 1.0, reason: "Very relevant" }]),
+              },
+            },
+          ],
+        }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
 
     const result = await filterArticles(veryOldArticles, "test-api-key");
@@ -251,16 +278,21 @@ describe("filterArticles", () => {
     ];
 
     globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({
-        choices: [{
-          message: {
-            content: JSON.stringify([
-              { index: 0, score: 0.9, reason: "Very relevant but old" },
-              { index: 1, score: 0.7, reason: "Somewhat relevant and fresh" },
-            ])
-          }
-        }]
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify([
+                  { index: 0, score: 0.9, reason: "Very relevant but old" },
+                  { index: 1, score: 0.7, reason: "Somewhat relevant and fresh" },
+                ]),
+              },
+            },
+          ],
+        }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
 
     const result = await filterArticles(mixedArticles, "test-api-key");

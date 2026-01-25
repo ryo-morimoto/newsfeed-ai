@@ -9,12 +9,7 @@ export type {
 } from "./types";
 
 // Categories (unified emoji + colors)
-export {
-  CATEGORIES,
-  getCategoryEmoji,
-  getCategoryColor,
-  getCategoryConfig,
-} from "./categories";
+export { CATEGORIES, getCategoryEmoji, getCategoryColor, getCategoryConfig } from "./categories";
 
 // Config loader
 export {

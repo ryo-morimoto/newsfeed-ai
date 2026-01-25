@@ -127,7 +127,8 @@ async function getGitDiff(workdir: string, branch: string): Promise<string> {
     const diffOutput = await new Response(diffProc.stdout).text();
 
     // Truncate diff to avoid token limits
-    const truncatedDiff = diffOutput.length > 8000 ? diffOutput.slice(0, 8000) + "\n... (truncated)" : diffOutput;
+    const truncatedDiff =
+      diffOutput.length > 8000 ? diffOutput.slice(0, 8000) + "\n... (truncated)" : diffOutput;
 
     return `Files changed:\n${statOutput}\n\nDiff:\n${truncatedDiff}`;
   } catch {
@@ -320,7 +321,11 @@ async function createPrWithGh(
  * Register a task for completion notification.
  * Call this when a task is started via feedback command.
  */
-export async function watchTask(taskId: string, channelId: string, messageId: string): Promise<void> {
+export async function watchTask(
+  taskId: string,
+  channelId: string,
+  messageId: string
+): Promise<void> {
   await registerTaskNotification(taskId, channelId, messageId);
   console.log(`[task-monitor] Registered task ${taskId} for notification`);
 }
@@ -359,7 +364,12 @@ export async function checkPendingTasks(): Promise<TaskCompletionInfo[]> {
         const prContent = await generatePrContent(task.title, diff, commits);
 
         // Create PR with gh CLI
-        prUrl = await createPrWithGh(workdir, latestAttempt.branch, prContent.title, prContent.description);
+        prUrl = await createPrWithGh(
+          workdir,
+          latestAttempt.branch,
+          prContent.title,
+          prContent.description
+        );
       }
 
       completed.push({

@@ -44,6 +44,7 @@ In `src/filter.ts`:
 ### Change Score Threshold
 
 In `src/filter.ts`, find:
+
 ```typescript
 .filter((a) => a.score >= 0.5)
 ```

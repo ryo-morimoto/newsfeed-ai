@@ -54,13 +54,13 @@ async function migrate() {
   try {
     await turso.execute("ALTER TABLE articles ADD COLUMN hn_score INTEGER");
     console.log("  Added hn_score column");
-  } catch (e) {
+  } catch {
     // カラムが既に存在する場合は無視
   }
   try {
     await turso.execute("ALTER TABLE articles ADD COLUMN hn_comments INTEGER");
     console.log("  Added hn_comments column");
-  } catch (e) {
+  } catch {
     // カラムが既に存在する場合は無視
   }
 
@@ -113,7 +113,9 @@ async function migrate() {
     }
   }
 
-  console.log(`Articles migration complete: ${migrated} migrated, ${skipped} skipped (already exist)`);
+  console.log(
+    `Articles migration complete: ${migrated} migrated, ${skipped} skipped (already exist)`
+  );
 
   // task_notificationsテーブルの移行
   try {
@@ -133,12 +135,12 @@ async function migrate() {
             task.created_at || new Date().toISOString(),
           ],
         });
-      } catch (error) {
+      } catch {
         // Skip duplicates
       }
     }
     console.log("Task notifications migration complete");
-  } catch (error) {
+  } catch {
     console.log("No task_notifications table found, skipping...");
   }
 

@@ -9,9 +9,7 @@ import { getSearchConfig, initSearchIndex } from "./orama-index";
  * Initialize the search service
  * Should be called at application startup
  */
-export async function initSearchService(
-  getAllArticles: () => Promise<Article[]>
-): Promise<void> {
+export async function initSearchService(getAllArticles: () => Promise<Article[]>): Promise<void> {
   await initSearchIndex();
   await search.initSearchService(getSearchConfig(), getAllArticles);
 }

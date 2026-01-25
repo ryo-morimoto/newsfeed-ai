@@ -40,6 +40,7 @@ if (command === "ping") {
 ## Embed Formats
 
 Three formats available in `src/discord-embed.ts`:
+
 - `text` - Plain markdown messages
 - `digest` - Compact daily digest
 - `category` - Grouped by category
@@ -49,6 +50,7 @@ Set via `EMBED_FORMAT` environment variable.
 ## Schedule Configuration
 
 In `src/bot.ts`:
+
 ```typescript
 const SCHEDULE_HOURS_UTC = [23]; // 8:00 JST
 ```
@@ -65,6 +67,7 @@ To add more times, add to the array: `[7, 15, 23]` for 3 times per day.
 ## Color Scheme
 
 Category colors are defined in `src/discord-embed.ts`:
+
 ```typescript
 const CATEGORY_COLORS: Record<string, number> = {
   ai: 0x10a37f,

@@ -173,9 +173,7 @@ describe("Agent Feedback Integration (vibe-kanban MCP)", () => {
       expect(result.logs).toContainEqual(
         expect.stringContaining('Starting feedback agent for: "Test logging"')
       );
-      expect(result.logs).toContainEqual(
-        expect.stringContaining("Requested by: User123")
-      );
+      expect(result.logs).toContainEqual(expect.stringContaining("Requested by: User123"));
     });
 
     test("extracts IDs from tool result JSON", async () => {
@@ -287,7 +285,10 @@ describe("Agent Feedback Integration (vibe-kanban MCP)", () => {
       await runFeedbackAgent("Test", "User");
 
       // The mcpServers config should include vibe-kanban with env
-      const mcpServers = capturedOptions.mcpServers as Record<string, { command: string; args?: string[]; env?: Record<string, string> }>;
+      const mcpServers = capturedOptions.mcpServers as Record<
+        string,
+        { command: string; args?: string[]; env?: Record<string, string> }
+      >;
       expect(mcpServers).toBeDefined();
       expect(mcpServers["vibe-kanban"]).toBeDefined();
       expect(mcpServers["vibe-kanban"].command).toBe("npx");

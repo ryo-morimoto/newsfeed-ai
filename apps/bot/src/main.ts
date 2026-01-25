@@ -1,17 +1,29 @@
-import { ensureDb, isArticleSeen, saveArticle, markAsNotified, updateArticleDetailedSummary } from "./db";
+import {
+  ensureDb,
+  isArticleSeen,
+  saveArticle,
+  markAsNotified,
+  updateArticleDetailedSummary,
+  updateArticleOgImage,
+} from "./db";
 import { fetchRss } from "./sources/rss";
 import { fetchHackerNews } from "./sources/hackernews";
 import { fetchGitHubTrending } from "./sources/github-trending";
 import { filterArticles, type ArticleToFilter } from "./filter";
 import { summarizeArticles } from "./summarize/summarize";
-import { generateDetailedSummary } from "./summarize/detailed-summary";
-import { sendToDiscord, type NotifyArticle } from "./discord/notify";
-import { createDigestEmbed, createCategoryEmbeds, sendEmbedsToDiscord, type DiscordEmbed } from "./discord/discord-embed";
 import {
-  getRssSources,
-  getHackerNewsSource,
-  getGitHubTrendingSource,
-} from "./config";
+  generateDetailedSummary,
+  fetchArticleContentWithOgImage,
+} from "./summarize/detailed-summary";
+import { sendToDiscord, type NotifyArticle } from "./discord/notify";
+import {
+  createDigestEmbed,
+  createCategoryEmbeds,
+  sendEmbedsToDiscord,
+  type DiscordEmbed,
+} from "./discord/discord-embed";
+import { getRssSources, getHackerNewsSource, getGitHubTrendingSource } from "./config";
+import { persistSearchIndex } from "./search/orama-index";
 
 // Environment variables
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
@@ -24,6 +36,73 @@ const EMBED_FORMAT = process.env.EMBED_FORMAT || "text"; // text, digest, catego
 export interface NewsfeedResult {
   articles: NotifyArticle[];
   embeds: DiscordEmbed[];
+}
+
+/**
+ * Check if article has substantial content (>50 chars, not just HN metadata)
+ */
+function hasSubstantialContent(content?: string): boolean {
+  if (!content || content.trim().length < 50) return false;
+  if (content.match(/^HN Score:\s*\d+点(、\d+コメント)?$/)) return false;
+  return true;
+}
+
+/**
+ * Fetch content and OG images for articles that lack substantial content
+ */
+async function enrichArticleContent(articles: ArticleToFilter[]): Promise<ArticleToFilter[]> {
+  const needsContent = articles.filter((a) => !hasSubstantialContent(a.content));
+
+  if (needsContent.length === 0) {
+    console.log("  All articles have substantial content");
+    return articles;
+  }
+
+  console.log(`  Fetching content for ${needsContent.length} articles...`);
+
+  // Fetch content in parallel with concurrency limit
+  const CONCURRENCY = 5;
+  const results = new Map<string, { content: string; ogImage: string | null }>();
+
+  for (let i = 0; i < needsContent.length; i += CONCURRENCY) {
+    const batch = needsContent.slice(i, i + CONCURRENCY);
+    const promises = batch.map(async (article) => {
+      try {
+        const { content, ogImage } = await fetchArticleContentWithOgImage(article.url);
+        if (content && content.length > 50) {
+          results.set(article.url, { content, ogImage });
+          const ogStatus = ogImage ? "📷" : "";
+          console.log(
+            `    ✓ ${article.title.slice(0, 40)}... (${content.length} chars) ${ogStatus}`
+          );
+        } else {
+          // Still save OG image even if content is empty
+          if (ogImage) {
+            results.set(article.url, { content: "", ogImage });
+            console.log(`    ✗ ${article.title.slice(0, 40)}... (no content, has OG image)`);
+          } else {
+            console.log(`    ✗ ${article.title.slice(0, 40)}... (no content)`);
+          }
+        }
+      } catch (error) {
+        console.log(`    ✗ ${article.title.slice(0, 40)}... (fetch error)`);
+      }
+    });
+    await Promise.all(promises);
+  }
+
+  // Merge fetched content and OG images with original articles
+  return articles.map((article) => {
+    const fetched = results.get(article.url);
+    if (fetched) {
+      return {
+        ...article,
+        content: fetched.content || article.content,
+        og_image: fetched.ogImage || undefined,
+      };
+    }
+    return article;
+  });
 }
 
 /**
@@ -133,13 +212,29 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
   const topArticles = filtered.slice(0, MAX_ARTICLES);
   console.log(`  Top ${topArticles.length} selected`);
 
+  // Fetch content for articles lacking substantial content
+  console.log("\n📥 Fetching article content...");
+  const articlesWithContent = await enrichArticleContent(topArticles);
+
+  // Update OG images in database (in parallel)
+  const articlesWithOgImage = articlesWithContent.filter((a) => a.og_image);
+  if (articlesWithOgImage.length > 0) {
+    console.log(`\n🖼️ Saving ${articlesWithOgImage.length} OG images...`);
+    await Promise.all(
+      articlesWithOgImage.map((article) =>
+        article.og_image ? updateArticleOgImage(article.url, article.og_image) : Promise.resolve()
+      )
+    );
+  }
+
   // Summarize
   console.log("\n✍️ Summarizing...");
-  const summarized = await summarizeArticles(topArticles, GROQ_API_KEY);
+  const summarized = await summarizeArticles(articlesWithContent, GROQ_API_KEY);
 
-  // Generate detailed summaries for selected articles
+  // Generate detailed summaries for selected articles (sequential due to API rate limits)
   console.log("\n📝 Generating detailed summaries...");
-  for (const article of summarized) {
+  await summarized.reduce<Promise<void>>(async (prevPromise, article) => {
+    await prevPromise;
     try {
       const detailed = await generateDetailedSummary(
         {
@@ -162,7 +257,7 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
     } catch (error) {
       console.error(`  ✗ Failed for ${article.url}:`, error);
     }
-  }
+  }, Promise.resolve());
 
   // Prepare for notification
   const toNotify: NotifyArticle[] = summarized.map((a) => ({
@@ -176,14 +271,25 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
 
   // Save all fetched articles to DB (for dedup next time)
   console.log("\n💾 Saving to database...");
-  for (const article of allArticles) {
-    await saveArticle({
-      url: article.url,
-      title: article.title,
-      source: article.source,
-      category: article.category,
-      notified: false,
-    });
+  await Promise.all(
+    allArticles.map((article) =>
+      saveArticle({
+        url: article.url,
+        title: article.title,
+        source: article.source,
+        category: article.category,
+        notified: false,
+      })
+    )
+  );
+
+  // Persist search index to Turso for Workers
+  console.log("\n🔍 Persisting search index...");
+  try {
+    await persistSearchIndex();
+    console.log("  Search index saved to Turso for Workers");
+  } catch (error) {
+    console.warn("  Failed to persist search index:", error);
   }
 
   // Create embeds

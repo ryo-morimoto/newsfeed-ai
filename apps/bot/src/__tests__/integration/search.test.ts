@@ -1,12 +1,7 @@
 import { test, expect, describe, beforeEach, afterEach } from "bun:test";
 import { join } from "path";
 import { unlinkSync, existsSync } from "fs";
-import {
-  create,
-  insert,
-  search,
-  type Orama,
-} from "@orama/orama";
+import { create, insert, search, type Orama } from "@orama/orama";
 import {
   ensureDb,
   closeDb,
@@ -49,7 +44,8 @@ const mockArticles = [
     source: "React Blog",
     category: "Frontend",
     summary: "A guide to React Server Components",
-    detailed_summary: "RSC allows rendering components on the server for better performance and SEO",
+    detailed_summary:
+      "RSC allows rendering components on the server for better performance and SEO",
     notified: false,
   },
   {
@@ -58,7 +54,8 @@ const mockArticles = [
     source: "AI Weekly",
     category: "AI",
     summary: "Understanding transformer architecture in AI",
-    detailed_summary: "Transformers revolutionized NLP with attention mechanisms and parallel processing",
+    detailed_summary:
+      "Transformers revolutionized NLP with attention mechanisms and parallel processing",
     notified: false,
   },
   {
@@ -121,8 +118,8 @@ describe("Search Integration (SQLite + Orama Fulltext)", () => {
 
       const articles = await getAllArticlesForIndexing();
       expect(articles.length).toBe(4);
-      expect(articles.map(a => a.url)).toContain(mockArticles[0].url);
-      expect(articles.map(a => a.url)).toContain(mockArticles[3].url);
+      expect(articles.map((a) => a.url)).toContain(mockArticles[0].url);
+      expect(articles.map((a) => a.url)).toContain(mockArticles[3].url);
     });
   });
 
@@ -131,9 +128,9 @@ describe("Search Integration (SQLite + Orama Fulltext)", () => {
 
     beforeEach(async () => {
       // Create Orama index without embeddings
-      db = await create({
+      db = (await create({
         schema: TEST_SCHEMA,
-      }) as TestOramaDb;
+      })) as TestOramaDb;
 
       // Save articles to SQLite
       for (const article of mockArticles) {
@@ -250,11 +247,7 @@ describe("Search Integration (SQLite + Orama Fulltext)", () => {
 
       // Simulate fallback search logic
       const matches = articles.filter((article) => {
-        const searchText = [
-          article.title,
-          article.summary,
-          article.detailed_summary,
-        ]
+        const searchText = [article.title, article.summary, article.detailed_summary]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
@@ -275,11 +268,7 @@ describe("Search Integration (SQLite + Orama Fulltext)", () => {
       const query = "transformer";
 
       const matches = articles.filter((article) => {
-        const searchText = [
-          article.title,
-          article.summary,
-          article.detailed_summary,
-        ]
+        const searchText = [article.title, article.summary, article.detailed_summary]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
@@ -299,11 +288,7 @@ describe("Search Integration (SQLite + Orama Fulltext)", () => {
       const query = "xyz123nonexistent";
 
       const matches = articles.filter((article) => {
-        const searchText = [
-          article.title,
-          article.summary,
-          article.detailed_summary,
-        ]
+        const searchText = [article.title, article.summary, article.detailed_summary]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();

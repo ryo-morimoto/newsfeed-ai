@@ -11,7 +11,7 @@ interface HNStory {
   url?: string;
   score?: number;
   time?: number;
-  descendants?: number;  // comment count
+  descendants?: number; // comment count
 }
 
 const HN_API = "https://hacker-news.firebaseio.com/v0";

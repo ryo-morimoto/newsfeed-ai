@@ -26,21 +26,24 @@ describe("Filter → Summarize Pipeline", () => {
       url: "https://anthropic.com/claude-4",
       source: "Anthropic Blog",
       category: "ai",
-      content: "Anthropic announces Claude 4 with breakthrough reasoning capabilities that exceed human performance on complex tasks.",
+      content:
+        "Anthropic announces Claude 4 with breakthrough reasoning capabilities that exceed human performance on complex tasks.",
     },
     {
       title: "New JavaScript Framework XYZ",
       url: "https://xyz.dev/launch",
       source: "XYZ Blog",
       category: "frontend",
-      content: "Another JavaScript framework enters the arena with innovative component architecture and blazing fast performance.",
+      content:
+        "Another JavaScript framework enters the arena with innovative component architecture and blazing fast performance.",
     },
     {
       title: "Local Sports Team Wins Game",
       url: "https://sports.com/game",
       source: "Sports News",
       category: "tech",
-      content: "The local team won yesterday's game with an impressive performance by the star player who scored three goals.",
+      content:
+        "The local team won yesterday's game with an impressive performance by the star player who scored three goals.",
     },
   ];
 
@@ -55,30 +58,40 @@ describe("Filter → Summarize Pipeline", () => {
       if (!filterCalled) {
         filterCalled = true;
         // Filter response - only AI article passes
-        return new Response(JSON.stringify({
-          choices: [{
-            message: {
-              content: JSON.stringify([
-                { index: 0, score: 0.95, reason: "AI breakthrough" },
-                { index: 1, score: 0.6, reason: "JS framework" },
-                // index 2 excluded - not relevant
-              ])
-            }
-          }]
-        }), { status: 200 });
+        return new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify([
+                    { index: 0, score: 0.95, reason: "AI breakthrough" },
+                    { index: 1, score: 0.6, reason: "JS framework" },
+                    // index 2 excluded - not relevant
+                  ]),
+                },
+              },
+            ],
+          }),
+          { status: 200 }
+        );
       } else {
         summarizeCalled = true;
         // Summarize response
-        return new Response(JSON.stringify({
-          choices: [{
-            message: {
-              content: JSON.stringify([
-                { index: 0, summary: "Claude 4がAGI能力を持ってリリース" },
-                { index: 1, summary: "新しいJSフレームワークXYZが登場" },
-              ])
-            }
-          }]
-        }), { status: 200 });
+        return new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify([
+                    { index: 0, summary: "Claude 4がAGI能力を持ってリリース" },
+                    { index: 1, summary: "新しいJSフレームワークXYZが登場" },
+                  ]),
+                },
+              },
+            ],
+          }),
+          { status: 200 }
+        );
       }
     }) as unknown as typeof fetch;
 
@@ -102,7 +115,7 @@ describe("Filter → Summarize Pipeline", () => {
     // Filter should return all with default score
     const filtered = await filterArticles(testArticles, "test-key");
     expect(filtered.length).toBe(3);
-    expect(filtered.every(a => a.reason === "api error")).toBe(true);
+    expect(filtered.every((a) => a.reason === "api error")).toBe(true);
 
     // Summarize should return all with original titles as fallback
     const summarized = await summarizeArticles(filtered, "test-key");
@@ -144,37 +157,46 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
       callCount++;
       if (callCount === 1) {
         // Filter
-        return new Response(JSON.stringify({
-          choices: [{
-            message: {
-              content: JSON.stringify([
-                { index: 0, score: 0.9, reason: "relevant" },
-              ])
-            }
-          }]
-        }), { status: 200 });
+        return new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify([{ index: 0, score: 0.9, reason: "relevant" }]),
+                },
+              },
+            ],
+          }),
+          { status: 200 }
+        );
       } else {
         // Summarize
-        return new Response(JSON.stringify({
-          choices: [{
-            message: {
-              content: JSON.stringify([
-                { index: 0, summary: "テスト要約" },
-              ])
-            }
-          }]
-        }), { status: 200 });
+        return new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify([{ index: 0, summary: "テスト要約" }]),
+                },
+              },
+            ],
+          }),
+          { status: 200 }
+        );
       }
     }) as unknown as typeof fetch;
 
     // Simulate source data with substantial content (>50 chars)
-    const sourceArticles: ArticleToFilter[] = [{
-      title: "Test Article",
-      url: "https://test.com/article",
-      source: "Test Source",
-      category: "ai",
-      content: "This is a comprehensive test article about artificial intelligence and machine learning breakthroughs.",
-    }];
+    const sourceArticles: ArticleToFilter[] = [
+      {
+        title: "Test Article",
+        url: "https://test.com/article",
+        source: "Test Source",
+        category: "ai",
+        content:
+          "This is a comprehensive test article about artificial intelligence and machine learning breakthroughs.",
+      },
+    ];
 
     // Step 1: Filter
     const filtered = await filterArticles(sourceArticles, "test-key");
@@ -185,7 +207,7 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
     expect(summarized[0].summary).toBe("テスト要約");
 
     // Step 3: Convert to NotifyArticle
-    const toNotify: NotifyArticle[] = summarized.map(a => ({
+    const toNotify: NotifyArticle[] = summarized.map((a) => ({
       title: a.title,
       url: a.url,
       summary: a.summary,
@@ -247,16 +269,21 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
 
   test("pipeline respects category-based processing", async () => {
     globalThis.fetch = mock(async () => {
-      return new Response(JSON.stringify({
-        choices: [{
-          message: {
-            content: JSON.stringify([
-              { index: 0, summary: "English summary" },
-              // index 1 is Japanese, should be skipped
-            ])
-          }
-        }]
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify([
+                  { index: 0, summary: "English summary" },
+                  // index 1 is Japanese, should be skipped
+                ]),
+              },
+            },
+          ],
+        }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
 
     // Articles with substantial content (>50 chars)
@@ -266,25 +293,27 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
         url: "https://tech.com/en",
         source: "Tech News",
         category: "tech",
-        content: "This is comprehensive English content about the latest technology trends and innovations in the industry.",
+        content:
+          "This is comprehensive English content about the latest technology trends and innovations in the industry.",
       },
       {
         title: "日本語のニュース",
         url: "https://tech.com/jp",
         source: "Zenn",
         category: "tech-jp",
-        content: "日本語の内容です。この記事では最新のテクノロジートレンドについて詳しく解説しています。",
+        content:
+          "日本語の内容です。この記事では最新のテクノロジートレンドについて詳しく解説しています。",
       },
     ];
 
     const summarized = await summarizeArticles(mixedArticles, "test-key");
 
     // English article gets summary
-    const enArticle = summarized.find(a => a.category === "tech");
+    const enArticle = summarized.find((a) => a.category === "tech");
     expect(enArticle?.summary).toBe("English summary");
 
     // Japanese article keeps empty summary (not sent to API)
-    const jpArticle = summarized.find(a => a.category === "tech-jp");
+    const jpArticle = summarized.find((a) => a.category === "tech-jp");
     expect(jpArticle?.summary).toBe("");
   });
 });

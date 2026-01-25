@@ -2,8 +2,7 @@
 .worktrees/
 
 node_modules/
-data/*.db
-data/*.log
+data/
 .env
 *.db-journal
 /newsfeed-ai-bot.service
@@ -12,3 +11,11 @@ data/*.log
 # Web UI build artifacts
 apps/web/dist/
 apps/web/.output/
+
+# Playwright E2E test artifacts
+apps/web/test-results/
+apps/web/playwright-report/
+
+# Cloudflare Workers local dev
+.dev.vars
+.wrangler/

@@ -29,12 +29,12 @@ bun run start
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `GROQ_API_KEY` | Groq API key (free at https://console.groq.com) |
-| `DISCORD_WEBHOOK` | Discord webhook URL |
-| `MAX_ARTICLES` | Max articles per digest (default: 20) |
-| `DRY_RUN` | Skip Discord notification if true |
+| Variable          | Description                                     |
+| ----------------- | ----------------------------------------------- |
+| `GROQ_API_KEY`    | Groq API key (free at https://console.groq.com) |
+| `DISCORD_WEBHOOK` | Discord webhook URL                             |
+| `MAX_ARTICLES`    | Max articles per digest (default: 20)           |
+| `DRY_RUN`         | Skip Discord notification if true               |
 
 ## Cron Setup
 

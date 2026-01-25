@@ -9,6 +9,8 @@ export interface Article {
   /** JSON array stored as string in database */
   key_points?: string;
   target_audience?: string;
+  /** Open Graph image URL */
+  og_image?: string;
   score?: number;
   published_at?: string;
   created_at?: string;
@@ -29,6 +31,7 @@ export interface ArticleRow {
   detailed_summary?: string;
   key_points?: string;
   target_audience?: string;
+  og_image?: string;
   score?: number;
   published_at?: string;
   created_at?: string;
