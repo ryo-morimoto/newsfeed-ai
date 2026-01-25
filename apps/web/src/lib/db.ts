@@ -21,12 +21,21 @@ export {
 // Initialize on first use with promise-based guard to prevent race conditions
 let initPromise: Promise<void> | null = null;
 
-export async function ensureInitialized() {
+type DbEnv = {
+  TURSO_DATABASE_URL?: string;
+  TURSO_AUTH_TOKEN?: string;
+};
+
+export async function ensureInitialized(env?: DbEnv) {
   if (!initPromise) {
-    // No dbPath needed - db module reads from environment variables:
-    // - TURSO_DATABASE_URL + TURSO_AUTH_TOKEN for Cloudflare Workers
-    // - DB_PATH for local development
-    initPromise = db.ensureDb().then(() => {});
+    // Pass env vars from Cloudflare Workers bindings (c.env)
+    // Falls back to process.env in local development
+    initPromise = db
+      .ensureDb({
+        tursoUrl: env?.TURSO_DATABASE_URL,
+        tursoToken: env?.TURSO_AUTH_TOKEN,
+      })
+      .then(() => {});
   }
   await initPromise;
 }

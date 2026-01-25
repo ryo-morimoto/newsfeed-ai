@@ -1,6 +1,9 @@
 import { defineConfig, presetUno, presetIcons, transformerDirectives } from "unocss";
 
 export default defineConfig({
+  content: {
+    filesystem: ["src/**/*.{tsx,ts}"],
+  },
   presets: [
     presetUno(),
     presetIcons({

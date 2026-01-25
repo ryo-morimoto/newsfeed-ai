@@ -14,7 +14,7 @@ const app = new Hono<{ Bindings: Bindings }>();
 
 // Initialize DB before handling requests
 app.use("*", async (c, next) => {
-  await ensureInitialized();
+  await ensureInitialized(c.env);
   await next();
 });
 
