@@ -1,12 +1,11 @@
-# apps/web/wrangler.toml
 name = "newsfeed-ai-web"
 compatibility_date = "2026-01-20"
-compatibility_flags = ["nodejs_compat"]
 preview_urls = false
 
-main = "@tanstack/react-start/server-entry"
+main = "dist/index.js"
 
-# Observability - enable logging for debugging
+assets = { directory = "dist/assets" }
+
 [observability]
 enabled = true
 
@@ -14,8 +13,5 @@ enabled = true
 enabled = true
 invocation_logs = true
 
-# Environment variables are set via Cloudflare Dashboard or wrangler secret
-
-# Production environment
 [env.production]
 routes = [{ pattern = "newsfeed-ai.ryo-o.dev", custom_domain = true }]
