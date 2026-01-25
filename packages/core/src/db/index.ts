@@ -3,7 +3,7 @@ export type { Article, ArticleRow, PendingTaskNotification, DbConfig } from "./t
 export { rowToArticle } from "./types";
 
 // Client
-export { ensureDb, getDb, closeDb } from "./client";
+export { ensureDb, getDb, closeDb, setDbClientFactory } from "./client";
 
 // Operations
 export {

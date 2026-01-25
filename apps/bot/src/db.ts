@@ -2,6 +2,7 @@
  * Database module for the bot application
  * Re-exports everything from @newsfeed-ai/core/db with bot-specific defaults
  */
+import "./adapters/db-adapter";
 import * as db from "@newsfeed-ai/core/db";
 
 // Default database path (relative to monorepo root)

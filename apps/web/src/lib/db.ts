@@ -5,6 +5,7 @@
  * For Cloudflare Workers: Uses Turso via TURSO_DATABASE_URL/TURSO_AUTH_TOKEN env vars
  * For local dev: Uses local SQLite via DB_PATH env var
  */
+import "../adapters/db-adapter";
 import * as db from "@newsfeed-ai/core/db";
 
 // Re-export types
