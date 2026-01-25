@@ -11,11 +11,12 @@
     "declaration": true,
     "declarationMap": true,
     "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
-    "types": ["bun"],
+    "types": ["@cloudflare/workers-types"],
     "paths": {
       "~/*": ["./src/*"]
     }
   },
-  "include": ["src", "server.ts"]
+  "include": ["src"]
 }
