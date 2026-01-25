@@ -1,23 +1,16 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import tsconfigPaths from "vite-tsconfig-paths";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import { cloudflare } from "@cloudflare/vite-plugin";
+import devServer from "@hono/vite-dev-server";
+import build from "@hono/vite-build/cloudflare-workers";
 import UnoCSS from "unocss/vite";
 
 export default defineConfig({
-  server: {
-    port: 3000,
-  },
   plugins: [
     UnoCSS(),
-    tsconfigPaths({
-      projects: ["./tsconfig.json"],
+    build({
+      entry: "src/index.tsx",
     }),
-    cloudflare({ viteEnvironment: { name: "ssr" } }),
-    tanstackStart({
-      target: "cloudflare-workers",
+    devServer({
+      entry: "src/index.tsx",
     }),
-    react(),
   ],
 });
