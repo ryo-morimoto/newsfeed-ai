@@ -1,6 +1,4 @@
 import { test, expect, describe, beforeEach, afterEach } from "bun:test";
-import { join } from "path";
-import { unlinkSync, existsSync } from "fs";
 import {
   create,
   insert,
@@ -14,8 +12,6 @@ import {
   getAllArticlesForIndexing,
   getArticleByUrl,
 } from "../../db";
-
-const TEST_DB_PATH = join(import.meta.dir, "..", "..", "..", "data", "search-test.db");
 
 // Skip search index sync in saveArticle
 process.env.SKIP_SEARCH_INDEX = "1";
@@ -74,26 +70,11 @@ const mockArticles = [
 
 describe("Search Integration (SQLite + Orama Fulltext)", () => {
   beforeEach(async () => {
-    // Clean up test database
-    if (existsSync(TEST_DB_PATH)) unlinkSync(TEST_DB_PATH);
-    const walPath = TEST_DB_PATH + "-wal";
-    const shmPath = TEST_DB_PATH + "-shm";
-    if (existsSync(walPath)) unlinkSync(walPath);
-    if (existsSync(shmPath)) unlinkSync(shmPath);
-
-    // Initialize database
-    await ensureDb(TEST_DB_PATH);
+    await ensureDb(":memory:");
   });
 
   afterEach(() => {
     closeDb();
-
-    // Clean up files
-    if (existsSync(TEST_DB_PATH)) unlinkSync(TEST_DB_PATH);
-    const walPath = TEST_DB_PATH + "-wal";
-    const shmPath = TEST_DB_PATH + "-shm";
-    if (existsSync(walPath)) unlinkSync(walPath);
-    if (existsSync(shmPath)) unlinkSync(shmPath);
   });
 
   describe("SQLite Storage", () => {

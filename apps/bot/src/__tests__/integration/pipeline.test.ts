@@ -1,13 +1,9 @@
 import { test, expect, describe, beforeEach, afterEach, mock, spyOn } from "bun:test";
-import { join } from "path";
-import { unlinkSync, existsSync } from "fs";
 import { ensureDb, closeDb, isArticleSeen, getRecentArticles, saveArticle } from "../../db";
 import { filterArticles, type ArticleToFilter } from "../../filter";
 import { summarizeArticles, type ArticleToSummarize } from "../../summarize/summarize";
 import { createCategoryEmbeds } from "../../discord/discord-embed";
 import type { NotifyArticle } from "../../discord/notify";
-
-const TEST_DB_PATH = join(import.meta.dir, "..", "..", "..", "data", "pipeline-test.db");
 
 // Skip search index sync in tests (loads TensorFlow which is slow)
 process.env.SKIP_SEARCH_INDEX = "1";
@@ -118,22 +114,11 @@ describe("Full Pipeline: Source → Filter → Summarize → Embed", () => {
   const originalFetch = globalThis.fetch;
 
   beforeEach(async () => {
-    if (existsSync(TEST_DB_PATH)) {
-      unlinkSync(TEST_DB_PATH);
-    }
-    await ensureDb(TEST_DB_PATH);
+    await ensureDb(":memory:");
   });
 
   afterEach(() => {
     closeDb();
-    if (existsSync(TEST_DB_PATH)) {
-      unlinkSync(TEST_DB_PATH);
-    }
-    // Also clean up WAL files
-    const walPath = TEST_DB_PATH + "-wal";
-    const shmPath = TEST_DB_PATH + "-shm";
-    if (existsSync(walPath)) unlinkSync(walPath);
-    if (existsSync(shmPath)) unlinkSync(shmPath);
     globalThis.fetch = originalFetch;
   });
 
