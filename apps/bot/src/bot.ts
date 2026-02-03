@@ -35,7 +35,7 @@ const SUMMARY_GENERATION_INTERVAL_MS = 15 * 60 * 1000;
 // JST 8:00 = UTC 23:00 (previous day)
 const SCHEDULE_HOURS_UTC = [23]; // 8:00 JST
 
-let lastRunHour = -1;
+let lastRunDate = "";
 
 // Define slash commands
 const commands = [
@@ -114,12 +114,13 @@ function checkSchedule() {
   const currentMinute = now.getUTCMinutes();
 
   // Run at the top of the scheduled hour (minute 0-1)
+  const todayKey = `${now.getUTCFullYear()}-${now.getUTCMonth()}-${now.getUTCDate()}-${currentHour}`;
   if (
     SCHEDULE_HOURS_UTC.includes(currentHour) &&
     currentMinute <= 1 &&
-    lastRunHour !== currentHour
+    lastRunDate !== todayKey
   ) {
-    lastRunHour = currentHour;
+    lastRunDate = todayKey;
     runScheduledNewsfeed();
   }
 }
