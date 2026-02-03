@@ -22,7 +22,7 @@ if [ -n "$CI" ]; then
     git reset --hard origin/main
 
     echo "📦 Installing dependencies..."
-    bun install
+    bun install --ignore-scripts
 fi
 
 # For manual deploys, pull and install in the current directory
@@ -32,7 +32,7 @@ if [ -z "$CI" ]; then
     git pull --ff-only
 
     echo "📦 Installing dependencies..."
-    bun install
+    bun install --ignore-scripts
     DEPLOY_DIR="$SOURCE_DIR"
 fi
 
