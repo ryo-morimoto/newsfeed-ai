@@ -73,7 +73,7 @@ update_service_file "$PROJECT_DIR/systemd/newsfeed-ai-web.service" "$WEB_SERVICE
 # Build web UI
 echo "🔨 Building web UI..."
 cd "$PROJECT_DIR/apps/web"
-bun install
+bun install --ignore-scripts
 bun run build
 cd "$PROJECT_DIR"
 
