@@ -1,6 +1,4 @@
 import { test, expect, describe, beforeEach, afterEach, mock } from "bun:test";
-import { join } from "path";
-import { unlinkSync, existsSync } from "fs";
 import {
   ensureDb,
   closeDb,
@@ -13,29 +11,16 @@ import type { FeedItem } from "../../sources/rss";
 import type { HNItem } from "../../sources/hackernews";
 import type { TrendingRepo } from "../../sources/github-trending";
 
-const TEST_DB_PATH = join(import.meta.dir, "..", "..", "..", "data", "integration-test.db");
-
 // Skip search index sync in tests (loads TensorFlow which is slow)
 process.env.SKIP_SEARCH_INDEX = "1";
 
 describe("Source → DB Integration", () => {
   beforeEach(async () => {
-    if (existsSync(TEST_DB_PATH)) {
-      unlinkSync(TEST_DB_PATH);
-    }
-    await ensureDb(TEST_DB_PATH);
+    await ensureDb(":memory:");
   });
 
   afterEach(() => {
     closeDb();
-    if (existsSync(TEST_DB_PATH)) {
-      unlinkSync(TEST_DB_PATH);
-    }
-    // Also clean up WAL files
-    const walPath = TEST_DB_PATH + "-wal";
-    const shmPath = TEST_DB_PATH + "-shm";
-    if (existsSync(walPath)) unlinkSync(walPath);
-    if (existsSync(shmPath)) unlinkSync(shmPath);
   });
 
   describe("RSS → DB flow", () => {

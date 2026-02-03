@@ -1,6 +1,4 @@
 import { test, expect, describe, beforeEach, afterEach } from "bun:test";
-import { join, dirname } from "path";
-import { unlinkSync, existsSync, mkdirSync } from "fs";
 import {
   ensureDb,
   closeDb,
@@ -8,38 +6,19 @@ import {
   saveArticle,
   markAsNotified,
   getRecentArticles,
+  getArticleByUrl,
 } from "./db";
-
-const TEST_DB_PATH = join(import.meta.dir, "..", "data", "test-history.db");
 
 // Skip search index sync in tests (loads TensorFlow which is slow)
 process.env.SKIP_SEARCH_INDEX = "1";
 
 describe("Database Operations", () => {
   beforeEach(async () => {
-    // Ensure data directory exists
-    const dataDir = dirname(TEST_DB_PATH);
-    if (!existsSync(dataDir)) {
-      mkdirSync(dataDir, { recursive: true });
-    }
-    // Clean up any existing test DB
-    if (existsSync(TEST_DB_PATH)) {
-      unlinkSync(TEST_DB_PATH);
-    }
-    // Initialize with test DB path
-    await ensureDb(TEST_DB_PATH);
+    await ensureDb(":memory:");
   });
 
   afterEach(() => {
     closeDb();
-    if (existsSync(TEST_DB_PATH)) {
-      unlinkSync(TEST_DB_PATH);
-    }
-    // Also clean up WAL files
-    const walPath = TEST_DB_PATH + "-wal";
-    const shmPath = TEST_DB_PATH + "-shm";
-    if (existsSync(walPath)) unlinkSync(walPath);
-    if (existsSync(shmPath)) unlinkSync(shmPath);
   });
 
   describe("isArticleSeen", () => {
@@ -88,7 +67,7 @@ describe("Database Operations", () => {
       expect(await isArticleSeen("https://example.com/article2")).toBe(true);
     });
 
-    test("ignores duplicate URLs", async () => {
+    test("upserts duplicate URLs without overwriting existing fields", async () => {
       await saveArticle({
         url: "https://example.com/dup",
         title: "Original",
@@ -97,16 +76,24 @@ describe("Database Operations", () => {
         notified: false,
       });
 
-      const result = await saveArticle({
+      await saveArticle({
         url: "https://example.com/dup",
         title: "Duplicate",
         source: "Test",
         category: "tech",
+        summary: "New summary",
+        published_at: "2025-01-01T00:00:00Z",
+        score: 8,
         notified: false,
       });
 
-      // INSERT OR IGNORE should not change anything
-      expect(result.rowsAffected).toBe(0);
+      const article = await getArticleByUrl("https://example.com/dup");
+      // title is preserved from initial insert
+      expect(article?.title).toBe("Original");
+      // new fields are updated
+      expect(article?.summary).toBe("New summary");
+      expect(article?.published_at).toBe("2025-01-01T00:00:00Z");
+      expect(article?.score).toBe(8);
     });
   });
 

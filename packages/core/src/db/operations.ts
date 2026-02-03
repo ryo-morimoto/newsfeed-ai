@@ -17,8 +17,16 @@ export async function saveArticle(article: Omit<Article, "id" | "created_at">) {
   const db = await getDb();
   const result = await db.execute({
     sql: `
-      INSERT OR IGNORE INTO articles (url, title, source, category, summary, detailed_summary, key_points, target_audience, og_image, score, published_at, notified)
+      INSERT INTO articles (url, title, source, category, summary, detailed_summary, key_points, target_audience, og_image, score, published_at, notified)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(url) DO UPDATE SET
+        summary = COALESCE(excluded.summary, articles.summary),
+        detailed_summary = COALESCE(excluded.detailed_summary, articles.detailed_summary),
+        key_points = COALESCE(excluded.key_points, articles.key_points),
+        target_audience = COALESCE(excluded.target_audience, articles.target_audience),
+        og_image = COALESCE(excluded.og_image, articles.og_image),
+        score = COALESCE(excluded.score, articles.score),
+        published_at = COALESCE(excluded.published_at, articles.published_at)
     `,
     args: [
       article.url,
@@ -127,6 +135,25 @@ export async function updateArticleOgImage(url: string, ogImage: string) {
     `,
     args: [ogImage, url],
   });
+}
+
+/**
+ * Get articles that are notified but don't have detailed summaries yet
+ * Used by background job to generate missing summaries
+ */
+export async function getArticlesWithoutDetailedSummary(limit: number = 10): Promise<Article[]> {
+  const db = await getDb();
+  const result = await db.execute({
+    sql: `
+      SELECT * FROM articles
+      WHERE detailed_summary IS NULL
+        AND notified = 1
+      ORDER BY created_at DESC
+      LIMIT ?
+    `,
+    args: [limit],
+  });
+  return (result.rows as unknown as ArticleRow[]).map(rowToArticle);
 }
 
 // === Task notification operations ===

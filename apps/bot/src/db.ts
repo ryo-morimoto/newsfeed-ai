@@ -18,6 +18,7 @@ export {
   markAsNotified,
   getRecentArticles,
   getArticlesWithDetailedSummary,
+  getArticlesWithoutDetailedSummary,
   getArticleByUrl,
   getAllArticlesForIndexing,
   updateArticleDetailedSummary,
