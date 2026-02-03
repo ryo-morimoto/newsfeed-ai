@@ -1,13 +1,12 @@
 #!/bin/bash
 set -e
 
-# Deploy newsfeed-ai bot and web UI
+# Deploy newsfeed-ai bot (web UI is deployed via Cloudflare Workers)
 # Usage: ./scripts/deploy.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SOURCE_DIR="$(dirname "$SCRIPT_DIR")"
 BOT_SERVICE="newsfeed-ai-bot"
-WEB_SERVICE="newsfeed-ai-web"
 DEPLOY_USER="${DEPLOY_USER:-exedev}"
 DEPLOY_DIR="/home/$DEPLOY_USER/newsfeed-ai"
 
@@ -68,14 +67,6 @@ update_service_file() {
 }
 
 update_service_file "$PROJECT_DIR/systemd/newsfeed-ai-bot.service" "$BOT_SERVICE"
-update_service_file "$PROJECT_DIR/systemd/newsfeed-ai-web.service" "$WEB_SERVICE"
-
-# Build web UI
-echo "🔨 Building web UI..."
-cd "$PROJECT_DIR/apps/web"
-bun install --ignore-scripts
-bun run build
-cd "$PROJECT_DIR"
 
 # Restart bot service
 echo "🔄 Restarting bot service..."
@@ -89,23 +80,6 @@ else
     echo "❌ Bot service failed to start. Check logs:"
     sudo journalctl -u "$BOT_SERVICE" -n 20 --no-pager
     exit 1
-fi
-
-# Restart web service (if installed)
-if [ -f "/etc/systemd/system/${WEB_SERVICE}.service" ]; then
-    echo "🔄 Restarting web service..."
-    sudo systemctl restart "$WEB_SERVICE"
-
-    sleep 2
-    if systemctl is-active --quiet "$WEB_SERVICE"; then
-        echo "✅ Web service is running."
-    else
-        echo "❌ Web service failed to start. Check logs:"
-        sudo journalctl -u "$WEB_SERVICE" -n 20 --no-pager
-        exit 1
-    fi
-else
-    echo "⚠️  Web service not configured (no example file). Skipping."
 fi
 
 echo "✅ Deploy complete!"
