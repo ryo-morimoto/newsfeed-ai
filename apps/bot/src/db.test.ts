@@ -1,6 +1,4 @@
 import { test, expect, describe, beforeEach, afterEach } from "bun:test";
-import { join, dirname } from "path";
-import { unlinkSync, existsSync, mkdirSync } from "fs";
 import {
   ensureDb,
   closeDb,
@@ -11,36 +9,16 @@ import {
   getArticleByUrl,
 } from "./db";
 
-const TEST_DB_PATH = join(import.meta.dir, "..", "data", "test-history.db");
-
 // Skip search index sync in tests (loads TensorFlow which is slow)
 process.env.SKIP_SEARCH_INDEX = "1";
 
 describe("Database Operations", () => {
   beforeEach(async () => {
-    // Ensure data directory exists
-    const dataDir = dirname(TEST_DB_PATH);
-    if (!existsSync(dataDir)) {
-      mkdirSync(dataDir, { recursive: true });
-    }
-    // Clean up any existing test DB
-    if (existsSync(TEST_DB_PATH)) {
-      unlinkSync(TEST_DB_PATH);
-    }
-    // Initialize with test DB path
-    await ensureDb(TEST_DB_PATH);
+    await ensureDb(":memory:");
   });
 
   afterEach(() => {
     closeDb();
-    if (existsSync(TEST_DB_PATH)) {
-      unlinkSync(TEST_DB_PATH);
-    }
-    // Also clean up WAL files
-    const walPath = TEST_DB_PATH + "-wal";
-    const shmPath = TEST_DB_PATH + "-shm";
-    if (existsSync(walPath)) unlinkSync(walPath);
-    if (existsSync(shmPath)) unlinkSync(shmPath);
   });
 
   describe("isArticleSeen", () => {
