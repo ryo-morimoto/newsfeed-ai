@@ -17,8 +17,15 @@ export async function saveArticle(article: Omit<Article, "id" | "created_at">) {
   const db = await getDb();
   const result = await db.execute({
     sql: `
-      INSERT OR IGNORE INTO articles (url, title, source, category, summary, detailed_summary, key_points, target_audience, score, published_at, notified)
+      INSERT INTO articles (url, title, source, category, summary, detailed_summary, key_points, target_audience, score, published_at, notified)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(url) DO UPDATE SET
+        summary = COALESCE(excluded.summary, articles.summary),
+        detailed_summary = COALESCE(excluded.detailed_summary, articles.detailed_summary),
+        key_points = COALESCE(excluded.key_points, articles.key_points),
+        target_audience = COALESCE(excluded.target_audience, articles.target_audience),
+        score = COALESCE(excluded.score, articles.score),
+        published_at = COALESCE(excluded.published_at, articles.published_at)
     `,
     args: [
       article.url,

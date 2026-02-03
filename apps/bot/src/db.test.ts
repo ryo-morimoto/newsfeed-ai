@@ -8,6 +8,7 @@ import {
   saveArticle,
   markAsNotified,
   getRecentArticles,
+  getArticleByUrl,
 } from "./db";
 
 const TEST_DB_PATH = join(import.meta.dir, "..", "data", "test-history.db");
@@ -88,7 +89,7 @@ describe("Database Operations", () => {
       expect(await isArticleSeen("https://example.com/article2")).toBe(true);
     });
 
-    test("ignores duplicate URLs", async () => {
+    test("upserts duplicate URLs without overwriting existing fields", async () => {
       await saveArticle({
         url: "https://example.com/dup",
         title: "Original",
@@ -97,16 +98,24 @@ describe("Database Operations", () => {
         notified: false,
       });
 
-      const result = await saveArticle({
+      await saveArticle({
         url: "https://example.com/dup",
         title: "Duplicate",
         source: "Test",
         category: "tech",
+        summary: "New summary",
+        published_at: "2025-01-01T00:00:00Z",
+        score: 8,
         notified: false,
       });
 
-      // INSERT OR IGNORE should not change anything
-      expect(result.rowsAffected).toBe(0);
+      const article = await getArticleByUrl("https://example.com/dup");
+      // title is preserved from initial insert
+      expect(article?.title).toBe("Original");
+      // new fields are updated
+      expect(article?.summary).toBe("New summary");
+      expect(article?.published_at).toBe("2025-01-01T00:00:00Z");
+      expect(article?.score).toBe(8);
     });
   });
 
