@@ -1,4 +1,9 @@
-import { createCategoryEmbeds, createArticleEmbeds, createDigestEmbed, type DiscordEmbed } from "./discord/discord-embed";
+import {
+  createCategoryEmbeds,
+  createArticleEmbeds,
+  createDigestEmbed,
+  type DiscordEmbed,
+} from "./discord/discord-embed";
 import type { NotifyArticle } from "./discord/notify";
 
 // Sample data for preview
@@ -69,9 +74,9 @@ const sampleArticles: NotifyArticle[] = [
 // Convert Discord embed to HTML for preview
 function embedToHtml(embed: DiscordEmbed): string {
   const colorHex = embed.color ? `#${embed.color.toString(16).padStart(6, "0")}` : "#5865f2";
-  
+
   let html = `<div class="embed" style="border-left-color: ${colorHex}">`;
-  
+
   if (embed.title) {
     if (embed.url) {
       html += `<div class="embed-title"><a href="${embed.url}" target="_blank">${escapeHtml(embed.title)}</a></div>`;
@@ -79,36 +84,39 @@ function embedToHtml(embed: DiscordEmbed): string {
       html += `<div class="embed-title">${escapeHtml(embed.title)}</div>`;
     }
   }
-  
+
   if (embed.description) {
     // Convert markdown links to HTML
     const desc = embed.description
-      .replace(/\*\*\[([^\]]+)\]\(([^)]+)\)\*\*/g, '<strong><a href="$2" target="_blank">$1</a></strong>')
+      .replace(
+        /\*\*\[([^\]]+)\]\(([^)]+)\)\*\*/g,
+        '<strong><a href="$2" target="_blank">$1</a></strong>'
+      )
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*([^*]+)\*/g, "<em>$1</em>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
       .replace(/└/g, '<span class="tree-line">└</span>')
-      .replace(/\n/g, '<br>');
+      .replace(/\n/g, "<br>");
     html += `<div class="embed-description">${desc}</div>`;
   }
-  
+
   if (embed.fields && embed.fields.length > 0) {
     html += '<div class="embed-fields">';
     for (const field of embed.fields) {
       const value = field.value
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-        .replace(/\n/g, '<br>');
+        .replace(/\*([^*]+)\*/g, "<em>$1</em>")
+        .replace(/\n/g, "<br>");
       html += `
-        <div class="embed-field${field.inline ? ' inline' : ''}">
+        <div class="embed-field${field.inline ? " inline" : ""}">
           <div class="embed-field-name">${escapeHtml(field.name)}</div>
           <div class="embed-field-value">${value}</div>
         </div>
       `;
     }
-    html += '</div>';
+    html += "</div>";
   }
-  
+
   if (embed.footer || embed.timestamp) {
     html += '<div class="embed-footer">';
     if (embed.footer) {
@@ -118,19 +126,19 @@ function embedToHtml(embed: DiscordEmbed): string {
       const date = new Date(embed.timestamp).toLocaleString();
       html += `<span class="timestamp">${date}</span>`;
     }
-    html += '</div>';
+    html += "</div>";
   }
-  
-  html += '</div>';
+
+  html += "</div>";
   return html;
 }
 
 function escapeHtml(text: string): string {
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 // Generate full preview page
@@ -139,23 +147,23 @@ async function generatePreviewPage(format: string): Promise<string> {
   let formatName: string;
 
   switch (format) {
-    case 'category':
+    case "category":
       embeds = await createCategoryEmbeds(sampleArticles);
-      formatName = 'Category Grouped';
+      formatName = "Category Grouped";
       break;
-    case 'article':
+    case "article":
       embeds = await createArticleEmbeds(sampleArticles);
-      formatName = 'Individual Articles';
+      formatName = "Individual Articles";
       break;
-    case 'digest':
+    case "digest":
     default:
       embeds = await createDigestEmbed(sampleArticles);
-      formatName = 'Daily Digest';
+      formatName = "Daily Digest";
       break;
   }
-  
-  const embedsHtml = embeds.map(embedToHtml).join('');
-  
+
+  const embedsHtml = embeds.map(embedToHtml).join("");
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -361,9 +369,9 @@ async function generatePreviewPage(format: string): Promise<string> {
     <p class="info-text">Compare different embed formats for the news bot</p>
     
     <div class="format-selector">
-      <a href="?format=digest" class="format-btn${format === 'digest' ? ' active' : ''}">Daily Digest</a>
-      <a href="?format=category" class="format-btn${format === 'category' ? ' active' : ''}">Category Grouped</a>
-      <a href="?format=article" class="format-btn${format === 'article' ? ' active' : ''}">Individual Articles</a>
+      <a href="?format=digest" class="format-btn${format === "digest" ? " active" : ""}">Daily Digest</a>
+      <a href="?format=category" class="format-btn${format === "category" ? " active" : ""}">Category Grouped</a>
+      <a href="?format=article" class="format-btn${format === "article" ? " active" : ""}">Individual Articles</a>
     </div>
     
     <h2 style="color: #fff; font-size: 16px; margin-bottom: 10px;">📱 Format: ${formatName}</h2>
@@ -388,11 +396,11 @@ Bun.serve({
   port,
   async fetch(req) {
     const url = new URL(req.url);
-    const format = url.searchParams.get('format') || 'digest';
+    const format = url.searchParams.get("format") || "digest";
 
     const html = await generatePreviewPage(format);
     return new Response(html, {
-      headers: { 'Content-Type': 'text/html' },
+      headers: { "Content-Type": "text/html" },
     });
   },
 });

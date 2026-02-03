@@ -111,16 +111,12 @@ describe("Database Operations", () => {
 
       // Verify via getRecentArticles
       const articles = await getRecentArticles(1);
-      const found = articles.find(a => a.url === "https://example.com/notify1");
+      const found = articles.find((a) => a.url === "https://example.com/notify1");
       expect(found?.notified).toBe(true);
     });
 
     test("marks multiple articles as notified", async () => {
-      const urls = [
-        "https://example.com/n1",
-        "https://example.com/n2",
-        "https://example.com/n3",
-      ];
+      const urls = ["https://example.com/n1", "https://example.com/n2", "https://example.com/n3"];
 
       for (const url of urls) {
         await saveArticle({
@@ -135,7 +131,7 @@ describe("Database Operations", () => {
       await markAsNotified(urls);
 
       const articles = await getRecentArticles(1);
-      const notifiedCount = articles.filter(a => a.notified === true).length;
+      const notifiedCount = articles.filter((a) => a.notified === true).length;
       expect(notifiedCount).toBe(3);
     });
 

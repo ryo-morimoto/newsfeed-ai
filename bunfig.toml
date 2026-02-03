@@ -1,0 +1,15 @@
+[test]
+# Require 70% line and function coverage
+coverageThreshold = 0.7
+
+# Exclude test files from coverage calculation
+coverageSkipTestFiles = true
+
+# Exclude orchestration code that primarily calls external systems
+# and files with complex environment/integration dependencies
+coveragePathIgnorePatterns = [
+  "**/task-monitor.ts",
+  "**/article-url.ts",
+  "**/search/service.ts",
+  "**/apps/bot/src/db.ts",
+]

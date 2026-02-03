@@ -17,13 +17,14 @@ export async function saveArticle(article: Omit<Article, "id" | "created_at">) {
   const db = await getDb();
   const result = await db.execute({
     sql: `
-      INSERT INTO articles (url, title, source, category, summary, detailed_summary, key_points, target_audience, score, published_at, notified)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO articles (url, title, source, category, summary, detailed_summary, key_points, target_audience, og_image, score, published_at, notified)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(url) DO UPDATE SET
         summary = COALESCE(excluded.summary, articles.summary),
         detailed_summary = COALESCE(excluded.detailed_summary, articles.detailed_summary),
         key_points = COALESCE(excluded.key_points, articles.key_points),
         target_audience = COALESCE(excluded.target_audience, articles.target_audience),
+        og_image = COALESCE(excluded.og_image, articles.og_image),
         score = COALESCE(excluded.score, articles.score),
         published_at = COALESCE(excluded.published_at, articles.published_at)
     `,
@@ -36,6 +37,7 @@ export async function saveArticle(article: Omit<Article, "id" | "created_at">) {
       article.detailed_summary || null,
       article.key_points || null,
       article.target_audience || null,
+      article.og_image || null,
       article.score || null,
       article.published_at || null,
       article.notified ? 1 : 0,
@@ -47,12 +49,14 @@ export async function saveArticle(article: Omit<Article, "id" | "created_at">) {
 
 export async function markAsNotified(urls: string[]) {
   const db = await getDb();
-  for (const url of urls) {
-    await db.execute({
-      sql: "UPDATE articles SET notified = 1 WHERE url = ?",
-      args: [url],
-    });
-  }
+  await Promise.all(
+    urls.map((url) =>
+      db.execute({
+        sql: "UPDATE articles SET notified = 1 WHERE url = ?",
+        args: [url],
+      })
+    )
+  );
 }
 
 export async function getRecentArticles(hours: number = 24): Promise<Article[]> {
@@ -118,6 +122,18 @@ export async function updateArticleDetailedSummary(
       WHERE url = ?
     `,
     args: [detailedSummary, JSON.stringify(keyPoints), targetAudience || null, url],
+  });
+}
+
+export async function updateArticleOgImage(url: string, ogImage: string) {
+  const db = await getDb();
+  return db.execute({
+    sql: `
+      UPDATE articles
+      SET og_image = ?
+      WHERE url = ?
+    `,
+    args: [ogImage, url],
   });
 }
 

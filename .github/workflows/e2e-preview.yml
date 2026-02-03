@@ -1,0 +1,80 @@
+# .github/workflows/e2e-preview.yml
+name: E2E Preview Tests
+
+on:
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/e2e-preview.yml"
+
+permissions:
+  pull-requests: write
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install Playwright browsers
+        run: bunx playwright install chromium
+        working-directory: apps/web
+
+      - name: Build web app
+        run: bun run build
+        working-directory: apps/web
+
+      - name: Deploy to Preview
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: apps/web
+          command: deploy
+
+      - name: Extract Preview URL
+        id: preview
+        run: |
+          PREVIEW_URL=$(echo '${{ steps.deploy.outputs.deployment-url }}' | tr -d '[:space:]')
+          if [ -z "$PREVIEW_URL" ]; then
+            PREVIEW_URL="https://newsfeed-ai-web.ryo-morimoto.workers.dev"
+          fi
+          echo "url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+
+      - name: Wait for Preview deployment
+        run: sleep 10
+
+      - name: Run E2E tests
+        run: bun run test:e2e
+        working-directory: apps/web
+        env:
+          E2E_BASE_URL: ${{ steps.preview.outputs.url }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+      - name: Comment PR with results
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
+            const url = '${{ steps.preview.outputs.url }}';
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## E2E Test Results ${status}\n\n**Preview URL:** ${url}\n**Status:** ${{ job.status }}`
+            });

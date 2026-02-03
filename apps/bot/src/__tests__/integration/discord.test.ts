@@ -40,10 +40,7 @@ describe("Discord Integration", () => {
         return new Response("", { status: 204 });
       }) as unknown as typeof fetch;
 
-      const result = await sendToDiscord(
-        "https://discord.webhook/test",
-        sampleArticles
-      );
+      const result = await sendToDiscord("https://discord.webhook/test", sampleArticles);
 
       expect(result).toBe(true);
       expect(receivedPayloads.length).toBe(1);
@@ -71,21 +68,15 @@ describe("Discord Integration", () => {
       }) as unknown as typeof fetch;
 
       // Create many articles across many categories to exceed 2000 char limit
-      const manyArticles: NotifyArticle[] = Array.from(
-        { length: 50 },
-        (_, i) => ({
-          title: `Article ${i} with a very long title that takes up a lot of space in the message`,
-          url: `https://example.com/article-with-a-long-path-${i}`,
-          summary: `This is a detailed summary for article number ${i} with lots of extra text to increase the overall message size significantly`,
-          category: `category-${i % 10}`, // 10 different categories
-          source: "Test Source with Long Name",
-        })
-      );
+      const manyArticles: NotifyArticle[] = Array.from({ length: 50 }, (_, i) => ({
+        title: `Article ${i} with a very long title that takes up a lot of space in the message`,
+        url: `https://example.com/article-with-a-long-path-${i}`,
+        summary: `This is a detailed summary for article number ${i} with lots of extra text to increase the overall message size significantly`,
+        category: `category-${i % 10}`, // 10 different categories
+        source: "Test Source with Long Name",
+      }));
 
-      const result = await sendToDiscord(
-        "https://discord.webhook/test",
-        manyArticles
-      );
+      const result = await sendToDiscord("https://discord.webhook/test", manyArticles);
 
       expect(result).toBe(true);
       // May be 1 or more chunks depending on content length
@@ -102,10 +93,7 @@ describe("Discord Integration", () => {
         return new Response("Rate Limited", { status: 429 });
       }) as unknown as typeof fetch;
 
-      const result = await sendToDiscord(
-        "https://discord.webhook/test",
-        sampleArticles
-      );
+      const result = await sendToDiscord("https://discord.webhook/test", sampleArticles);
       expect(result).toBe(false);
     });
 
@@ -114,10 +102,7 @@ describe("Discord Integration", () => {
         throw new Error("Network error");
       }) as unknown as typeof fetch;
 
-      const result = await sendToDiscord(
-        "https://discord.webhook/test",
-        sampleArticles
-      );
+      const result = await sendToDiscord("https://discord.webhook/test", sampleArticles);
       expect(result).toBe(false);
     });
   });
@@ -133,17 +118,12 @@ describe("Discord Integration", () => {
       }) as unknown as typeof fetch;
 
       const embeds = await createCategoryEmbeds(sampleArticles);
-      const result = await sendEmbedsToDiscord(
-        "https://discord.webhook/test",
-        embeds
-      );
+      const result = await sendEmbedsToDiscord("https://discord.webhook/test", embeds);
 
       expect(result).toBe(true);
       expect(receivedPayloads.length).toBe(1);
       expect((receivedPayloads[0] as { embeds: unknown[] }).embeds).toBeDefined();
-      expect((receivedPayloads[0] as { embeds: unknown[] }).embeds.length).toBe(
-        embeds.length
-      );
+      expect((receivedPayloads[0] as { embeds: unknown[] }).embeds.length).toBe(embeds.length);
     });
 
     test("splits embeds into chunks of 10", async () => {
@@ -166,19 +146,12 @@ describe("Discord Integration", () => {
 
       expect(embeds.length).toBe(15);
 
-      const result = await sendEmbedsToDiscord(
-        "https://discord.webhook/test",
-        embeds
-      );
+      const result = await sendEmbedsToDiscord("https://discord.webhook/test", embeds);
 
       expect(result).toBe(true);
       expect(receivedPayloads.length).toBe(2);
-      expect((receivedPayloads[0] as { embeds: unknown[] }).embeds.length).toBe(
-        10
-      );
-      expect((receivedPayloads[1] as { embeds: unknown[] }).embeds.length).toBe(
-        5
-      );
+      expect((receivedPayloads[0] as { embeds: unknown[] }).embeds.length).toBe(10);
+      expect((receivedPayloads[1] as { embeds: unknown[] }).embeds.length).toBe(5);
     });
 
     test("returns false when webhook URL is empty", async () => {
@@ -188,10 +161,7 @@ describe("Discord Integration", () => {
     });
 
     test("returns true for empty embeds array", async () => {
-      const result = await sendEmbedsToDiscord(
-        "https://discord.webhook/test",
-        []
-      );
+      const result = await sendEmbedsToDiscord("https://discord.webhook/test", []);
       expect(result).toBe(true);
     });
   });

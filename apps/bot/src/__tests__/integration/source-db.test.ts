@@ -53,8 +53,8 @@ describe("Source → DB Integration", () => {
 
       const recent = await getRecentArticles(24);
       expect(recent.length).toBe(2);
-      expect(recent.map(a => a.url)).toContain("https://devblog.com/ts-6");
-      expect(recent.map(a => a.url)).toContain("https://devblog.com/rsc");
+      expect(recent.map((a) => a.url)).toContain("https://devblog.com/ts-6");
+      expect(recent.map((a) => a.url)).toContain("https://devblog.com/rsc");
     });
 
     test("detects duplicate RSS items via isArticleSeen", async () => {
@@ -142,7 +142,7 @@ describe("Source → DB Integration", () => {
       const recent = await getRecentArticles(24);
       expect(recent.length).toBe(2);
 
-      const aiProject = recent.find(a => a.url.includes("ai-project"));
+      const aiProject = recent.find((a) => a.url.includes("ai-project"));
       expect(aiProject?.score).toBe(1.5);
     });
   });
@@ -180,7 +180,7 @@ describe("Source → DB Integration", () => {
       const recent = await getRecentArticles(24);
       expect(recent.length).toBe(2);
 
-      const tsRepo = recent.find(a => a.title.includes("typescript"));
+      const tsRepo = recent.find((a) => a.title.includes("typescript"));
       expect(tsRepo?.source).toBe("GitHub (typescript)");
       expect(tsRepo?.summary).toContain("★234");
     });
@@ -207,15 +207,15 @@ describe("Source → DB Integration", () => {
 
       // Verify all unnotified
       let articles = await getRecentArticles(24);
-      expect(articles.every(a => a.notified === false)).toBe(true);
+      expect(articles.every((a) => a.notified === false)).toBe(true);
 
       // Mark first two as notified
       await markAsNotified(urls.slice(0, 2));
 
       // Verify state
       articles = await getRecentArticles(24);
-      const notifiedCount = articles.filter(a => a.notified === true).length;
-      const unnotifiedCount = articles.filter(a => a.notified === false).length;
+      const notifiedCount = articles.filter((a) => a.notified === true).length;
+      const unnotifiedCount = articles.filter((a) => a.notified === false).length;
 
       expect(notifiedCount).toBe(2);
       expect(unnotifiedCount).toBe(1);

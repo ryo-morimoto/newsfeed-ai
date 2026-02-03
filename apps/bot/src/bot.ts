@@ -39,23 +39,14 @@ let lastRunDate = "";
 
 // Define slash commands
 const commands = [
-  new SlashCommandBuilder()
-    .setName("ping")
-    .setDescription("Check if the bot is responding"),
-  new SlashCommandBuilder()
-    .setName("status")
-    .setDescription("Show bot uptime and status"),
-  new SlashCommandBuilder()
-    .setName("run")
-    .setDescription("Manually trigger the newsfeed"),
+  new SlashCommandBuilder().setName("ping").setDescription("Check if the bot is responding"),
+  new SlashCommandBuilder().setName("status").setDescription("Show bot uptime and status"),
+  new SlashCommandBuilder().setName("run").setDescription("Manually trigger the newsfeed"),
   new SlashCommandBuilder()
     .setName("feedback")
     .setDescription("Submit feedback to create a task in vibe-kanban")
     .addStringOption((option) =>
-      option
-        .setName("request")
-        .setDescription("Your feedback or feature request")
-        .setRequired(true)
+      option.setName("request").setDescription("Your feedback or feature request").setRequired(true)
     ),
 ];
 
@@ -131,10 +122,7 @@ function checkSchedule() {
 async function checkAndNotifyTasks() {
   try {
     const completedTasks = await checkPendingTasks();
-
-    for (const task of completedTasks) {
-      await sendTaskNotification(task);
-    }
+    await Promise.all(completedTasks.map(sendTaskNotification));
   } catch (error) {
     console.error("[task-monitor] Error checking tasks:", error);
   }
@@ -192,7 +180,12 @@ client.once(Events.ClientReady, async (c) => {
   setInterval(checkAndNotifyTasks, TASK_CHECK_INTERVAL_MS);
 
   // Cleanup old task notifications daily
-  setInterval(() => { cleanup(7).catch(console.error); }, 24 * 60 * 60 * 1000);
+  setInterval(
+    () => {
+      cleanup(7).catch(console.error);
+    },
+    24 * 60 * 60 * 1000
+  );
 
   // Generate missing detailed summaries every 15 minutes
   setInterval(() => { generateMissingSummaries().catch(console.error); }, SUMMARY_GENERATION_INTERVAL_MS);
@@ -251,15 +244,12 @@ async function handleFeedbackInteraction(
 
       // Register task for notification (stateless - survives bot restarts)
       await watchTask(result.taskId, interaction.channelId, replyMessage.id);
-
     } else if (result.taskId) {
       await interaction.editReply(
         `⚠️ Task created but not started: ${result.error || "Unknown error"}`
       );
     } else {
-      await interaction.editReply(
-        `❌ Failed: ${result.error || "Unknown error"}`
-      );
+      await interaction.editReply(`❌ Failed: ${result.error || "Unknown error"}`);
     }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);

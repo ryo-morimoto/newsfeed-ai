@@ -1,22 +1,21 @@
 /**
  * Search module initialization for web app
- * Uses @newsfeed-ai/core with Node.js FileSystem adapter
+ * Uses @newsfeed-ai/core with Turso FileSystem adapter for Cloudflare Workers
  */
-import { search, paths, type Article } from "@newsfeed-ai/core";
+import * as search from "@newsfeed-ai/core/search";
+import type { Article } from "@newsfeed-ai/core/db";
+import { tursoFileSystem } from "../adapters/turso-fs";
 
 // Re-export SearchResult type for use by server-fns
 export type { SearchResult } from "@newsfeed-ai/core/search";
-import { nodeFileSystem } from "../adapters/fs";
 import { getAllArticles, ensureInitialized as ensureDbInitialized } from "./db";
-
-// Search configuration using Node.js FileSystem
-const searchConfig: search.SearchConfig = {
-  indexPath: paths.searchIndex,
-  fs: nodeFileSystem,
-};
 
 // Initialization tracking
 let initialized = false;
+const searchConfig: search.SearchConfig = {
+  indexPath: "default",
+  fs: tursoFileSystem,
+};
 
 /**
  * Ensure search service is initialized

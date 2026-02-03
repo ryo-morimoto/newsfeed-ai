@@ -55,7 +55,9 @@ describe("createCategoryEmbeds", () => {
     const embeds = await createCategoryEmbeds(sampleArticles);
 
     // Find AI category embed
-    const aiEmbed = embeds.find(e => e.title?.includes("AI") || e.description?.includes("ai-model"));
+    const aiEmbed = embeds.find(
+      (e) => e.title?.includes("AI") || e.description?.includes("ai-model")
+    );
     expect(aiEmbed).toBeDefined();
     expect(aiEmbed?.color).toBe(0x8b5cf6); // Purple for AI
   });
@@ -72,9 +74,7 @@ describe("createCategoryEmbeds", () => {
     const embeds = await createCategoryEmbeds(sampleArticles);
 
     // Find an embed with article content
-    const hasUrls = embeds.some(e =>
-      e.description?.includes("https://example.com")
-    );
+    const hasUrls = embeds.some((e) => e.description?.includes("https://example.com"));
     expect(hasUrls).toBe(true);
   });
 });
@@ -99,26 +99,30 @@ describe("createArticleEmbeds", () => {
 
   test("truncates long titles to 256 chars", async () => {
     const longTitle = "A".repeat(300);
-    const articles: NotifyArticle[] = [{
-      title: longTitle,
-      url: "https://example.com",
-      summary: "",
-      category: "tech",
-      source: "Test",
-    }];
+    const articles: NotifyArticle[] = [
+      {
+        title: longTitle,
+        url: "https://example.com",
+        summary: "",
+        category: "tech",
+        source: "Test",
+      },
+    ];
 
     const embeds = await createArticleEmbeds(articles);
     expect(embeds[0].title?.length).toBe(256);
   });
 
   test("handles undefined summary", async () => {
-    const articles: NotifyArticle[] = [{
-      title: "No Summary",
-      url: "https://example.com",
-      summary: "",
-      category: "tech",
-      source: "Test",
-    }];
+    const articles: NotifyArticle[] = [
+      {
+        title: "No Summary",
+        url: "https://example.com",
+        summary: "",
+        category: "tech",
+        source: "Test",
+      },
+    ];
 
     const embeds = await createArticleEmbeds(articles);
     // Without ARTICLE_SERVER_URL env, description is undefined for empty summary
@@ -157,13 +161,15 @@ describe("createDigestEmbed", () => {
 
   test("truncates long summaries in fields", async () => {
     const longSummary = "A".repeat(100);
-    const articles: NotifyArticle[] = [{
-      title: "Test",
-      url: "https://example.com",
-      summary: longSummary,
-      category: "tech",
-      source: "Test",
-    }];
+    const articles: NotifyArticle[] = [
+      {
+        title: "Test",
+        url: "https://example.com",
+        summary: longSummary,
+        category: "tech",
+        source: "Test",
+      },
+    ];
 
     const embeds = await createDigestEmbed(articles);
     const field = embeds[0].fields?.[0];

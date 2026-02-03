@@ -1,9 +1,15 @@
-import { createClient, type Client } from "@libsql/client";
+import type { Client } from "@libsql/client";
 import type { DbConfig } from "./types";
 
 let client: Client | null = null;
 let initialized = false;
 let currentConfig: DbConfig | null = null;
+type CreateClient = typeof import("@libsql/client").createClient;
+let createClientImpl: CreateClient | null = null;
+
+export function setDbClientFactory(factory: CreateClient) {
+  createClientImpl = factory;
+}
 
 /**
  * Initialize database connection
@@ -13,6 +19,12 @@ export async function ensureDb(config: DbConfig = {}): Promise<Client> {
   // If already initialized with same config, return existing client
   if (client && initialized && !hasConfigChanged(config)) {
     return client;
+  }
+
+  if (!createClientImpl) {
+    throw new Error(
+      "Database client factory not set. Call setDbClientFactory() before ensureDb()."
+    );
   }
 
   // Close existing connection if any
@@ -26,7 +38,7 @@ export async function ensureDb(config: DbConfig = {}): Promise<Client> {
 
   if (tursoUrl && tursoToken) {
     // Use Turso (remote libSQL)
-    client = createClient({
+    client = createClientImpl({
       url: tursoUrl,
       authToken: tursoToken,
     });
@@ -39,7 +51,7 @@ export async function ensureDb(config: DbConfig = {}): Promise<Client> {
         "Database path not configured. Set DB_PATH environment variable or pass dbPath in config."
       );
     }
-    client = createClient({
+    client = createClientImpl({
       url: `file:${dbPath}`,
     });
     console.log(`[db] Using local SQLite: ${dbPath}`);
@@ -86,16 +98,26 @@ export async function ensureDb(config: DbConfig = {}): Promise<Client> {
     `CREATE INDEX IF NOT EXISTS idx_pending ON pending_task_notifications(notified_at)`
   );
 
+  // Search index table for Orama persistence (used by Workers)
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS search_index (
+      id TEXT PRIMARY KEY DEFAULT 'default',
+      data BLOB NOT NULL,
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   // Migration: Add new columns to existing tables (ignore errors if columns exist)
   const migrations = [
     "ALTER TABLE articles ADD COLUMN detailed_summary TEXT",
     "ALTER TABLE articles ADD COLUMN key_points TEXT",
     "ALTER TABLE articles ADD COLUMN target_audience TEXT",
+    "ALTER TABLE articles ADD COLUMN og_image TEXT",
   ];
 
-  for (const sql of migrations) {
+  async function runMigration(sql: string): Promise<void> {
     try {
-      await client.execute(sql);
+      await client!.execute(sql);
     } catch (error) {
       // Only ignore "duplicate column" errors, re-throw others
       const message = error instanceof Error ? error.message : String(error);
@@ -105,6 +127,14 @@ export async function ensureDb(config: DbConfig = {}): Promise<Client> {
       }
     }
   }
+
+  await migrations.reduce<Promise<void>>(
+    async (prev, sql) => {
+      await prev;
+      await runMigration(sql);
+    },
+    Promise.resolve()
+  );
 
   initialized = true;
   currentConfig = config;
