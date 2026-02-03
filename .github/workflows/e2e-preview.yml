@@ -7,6 +7,9 @@ on:
       - "apps/web/**"
       - ".github/workflows/e2e-preview.yml"
 
+permissions:
+  pull-requests: write
+
 jobs:
   e2e-test:
     runs-on: ubuntu-latest
