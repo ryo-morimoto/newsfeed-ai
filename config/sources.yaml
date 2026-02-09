@@ -72,13 +72,25 @@ sources:
 
 # User interests for Claude filtering
 interests:
-  - AI/LLM developments, especially Claude, GPT, agent frameworks
+  # High Priority - AI Agents & Coding Workflows
+  - AI agent development, autonomous agents, agent orchestration frameworks (LangGraph, CrewAI, AutoGen)
+  - Coding agents, Claude Code, Cursor, Copilot, Devin, agentic coding workflows
+  - How to effectively use AI coding agents, human-AI collaboration patterns
+  - Managing AI agents without humans becoming bottlenecks, parallel agent workflows
+  - OCR advances, document understanding, vision-language models for real-world tasks
+  - LLM improvements in reasoning, tool use, function calling, planning capabilities
+  - Real-world task automation, computer use, browser automation with AI
+  - Benchmark results for agent capabilities, SWE-bench, GAIA, real-world evaluations
+
+  # Medium Priority - Technical foundations
+  - AI/LLM developments, especially Claude, GPT, new model releases
   - React, Next.js, TypeScript frontend
   - Rust, Go systems programming
+  - Interesting open source projects related to AI tooling
+
+  # Lower Priority
   - Laravel, PHP backend
-  - Interesting open source projects
   - Cryptocurrency market trends, DeFi
-  - Game development, Deadlock, LoL
 
 # Categories with emoji for Discord
 categories:
