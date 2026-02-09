@@ -72,18 +72,43 @@ sources:
 
 # User interests for Claude filtering
 interests:
-  # High Priority - AI Agents & Coding Workflows
-  - AI agent development, autonomous agents, agent orchestration frameworks (LangGraph, CrewAI, AutoGen)
-  - Coding agents, Claude Code, Cursor, Copilot, Devin, agentic coding workflows
-  - How to effectively use AI coding agents, human-AI collaboration patterns
+  # Highest Priority - Modern Agent Frameworks (practical, production-ready)
+  - Mastra AI framework, TypeScript agent development, agentic apps with Mastra
+  - Claude Agent SDK, Anthropic agent infrastructure, claude-agent-sdk-python, claude-agent-sdk-typescript
+  - OpenCode AI coding agent, terminal-based AI agents, open source coding agents
+  - Agent Client Protocol (ACP), IDE integrations for AI agents
+
+  # High Priority - Self-Improving Agents (cutting-edge research & practical)
+  - Self-improving AI agents, recursive self-improvement, self-evolving agents
+  - Gödel Agent, SICA (Self-Improving Coding Agent), AlphaEvolve, Darwin Gödel Machine
+  - Self-Taught Optimizer, Generator-Verifier-Updater patterns, meta-learning for agents
+  - Agents that rewrite their own code, autonomous code improvement, skill libraries
+  - ICLR recursive self-improvement workshop, agent evolution techniques
+
+  # High Priority - Agent Metrics & Observability (production essentials)
+  - Agent observability, LLM observability platforms, agent monitoring in production
+  - Task completion metrics, plan quality evaluation, LLM-as-judge evaluation
+  - Distributed tracing for agents, token accounting, agent evaluation frameworks
+  - Braintrust, Langfuse, Datadog LLM Observability, agent evals
+  - Agent quality metrics, human-in-the-loop evaluation, automated agent testing
+
+  # High Priority - Last Mile Problem Solutions (practical deployment)
+  - LLM production deployment challenges, prototype-to-production gap, GenAI implementation failures
+  - Last-mile execution failures in agents, context pollution, coherence degradation
+  - Agent failure analysis, debugging agentic workflows, execution stability
+  - LLMOps, prompt versioning, A/B testing for agents, continuous prompt optimization
+  - Trial and error learning for agents, Critical Step Optimization, trajectory optimization
+
+  # High Priority - Coding Agents & Agentic Workflows
+  - Coding agents, Claude Code, Cursor, Copilot, Devin, Aider, Cline, Devon, Roo Code
+  - Agentic coding workflows, human-AI collaboration in coding
   - Managing AI agents without humans becoming bottlenecks, parallel agent workflows
-  - OCR advances, document understanding, vision-language models for real-world tasks
-  - LLM improvements in reasoning, tool use, function calling, planning capabilities
   - Real-world task automation, computer use, browser automation with AI
-  - Benchmark results for agent capabilities, SWE-bench, GAIA, real-world evaluations
+  - Benchmark results for agent capabilities, SWE-bench, GAIA, KAMI benchmark
 
   # Medium Priority - Technical foundations
   - AI/LLM developments, especially Claude, GPT, new model releases
+  - Inference-time scaling, reasoning models, chain-of-thought improvements
   - React, Next.js, TypeScript frontend
   - Rust, Go systems programming
   - Interesting open source projects related to AI tooling
