@@ -70,6 +70,58 @@ sources:
     category: crypto
     enabled: true
 
+  # === AI Practitioner Blogs & Newsletters (実務知見系) ===
+  - name: Latent Space
+    type: rss
+    url: https://www.latent.space/feed
+    category: ai
+    enabled: true
+
+  - name: Simon Willison
+    type: rss
+    url: https://simonwillison.net/atom/everything/
+    category: ai
+    enabled: true
+
+  - name: Sebastian Raschka
+    type: rss
+    url: https://magazine.sebastianraschka.com/feed
+    category: ai
+    enabled: true
+
+  # === LLMOps & Agent Observability ===
+  - name: ZenML Blog
+    type: rss
+    url: https://www.zenml.io/blog/rss.xml
+    category: ai
+    enabled: true
+
+  - name: Langfuse Blog
+    type: rss
+    url: https://langfuse.com/blog/rss.xml
+    category: ai
+    enabled: true
+
+  # === Research Papers (Agent & SE focused) ===
+  - name: arXiv cs.MA (Multi-Agent)
+    type: rss
+    url: https://rss.arxiv.org/rss/cs.MA
+    category: ai
+    enabled: true
+
+  - name: arXiv cs.SE (Software Engineering)
+    type: rss
+    url: https://rss.arxiv.org/rss/cs.SE
+    category: ai
+    enabled: true
+
+  # === AI Company Research Blogs ===
+  - name: Anthropic Research
+    type: rss
+    url: https://www.anthropic.com/rss.xml
+    category: ai
+    enabled: true
+
 # User interests for Claude filtering
 interests:
   # Highest Priority - Modern Agent Frameworks (practical, production-ready)

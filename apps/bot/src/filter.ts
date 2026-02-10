@@ -58,14 +58,35 @@ async function processBatch(
   apiKey: string,
   interestsPrompt: string
 ): Promise<FilteredArticle[]> {
-  const prompt = `You are filtering news articles for a developer. Score each article 0-1 based on relevance to these interests:
+  const prompt = `You are filtering news articles for a developer focused on AI agents, LLMOps, and production deployment.
+
+## Scoring Priorities (in order of importance):
+1. **Practical production experience** (highest value): "how we built", "lessons learned", production post-mortems, real metrics from deployments, trial-and-error stories
+2. **Self-improving agents**: recursive improvement, meta-learning, agent evolution, Gödel Agent, SICA, self-evolving systems
+3. **Agent metrics & observability**: evaluation frameworks, monitoring in production, tracing, task completion rates, LLM-as-judge
+4. **Last-mile problems**: prototype-to-production challenges, deployment failures, cost optimization, context pollution fixes
+
+## Score Boosters (+0.15 each):
+- Contains specific metrics/numbers from real production use
+- Describes failures, debugging, or trial-and-error process
+- From practitioner blog (Simon Willison, Latent Space, etc.) vs news site
+- Discusses agent evaluation methodology or metrics design
+- Deep technical content about agent internals or LLMOps
+
+## Score Reducers (-0.15 each):
+- Generic product announcement without technical depth
+- Marketing content, listicles, or superficial overviews
+- Game/entertainment releases (unless AI/agent related)
+- Cryptocurrency price/market news (keep DeFi tech only)
+
+## User Interests:
 ${interestsPrompt}
 
-Articles to evaluate:
-${batch.map((a, idx) => `[${idx}] ${a.title} (${a.source}) - ${a.content?.slice(0, 200) || "no description"}`).join("\n")}
+## Articles to evaluate:
+${batch.map((a, idx) => `[${idx}] ${a.title} (${a.source}) - ${a.content?.slice(0, 300) || "no description"}`).join("\n")}
 
-Respond with JSON array only, no explanation:
-[{"index": 0, "score": 0.8, "reason": "brief reason"}, ...]
+Respond with JSON array only:
+[{"index": 0, "score": 0.8, "reason": "practical production experience with metrics"}, ...]
 
 Only include articles with score >= 0.5`;
 
@@ -78,7 +99,7 @@ Only include articles with score >= 0.5`;
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
-        max_tokens: 1024,
+        max_tokens: 2048,
         temperature: 0.1,
         messages: [{ role: "user", content: prompt }],
       }),
