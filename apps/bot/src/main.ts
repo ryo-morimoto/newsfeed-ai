@@ -25,6 +25,7 @@ import {
 import { getRssSources, getHackerNewsSource, getGitHubTrendingSource } from "./config";
 import { persistSearchIndex } from "./search/orama-index";
 import { withRetry, RateLimitError } from "./utils/retry";
+import { logError, logWarn } from "./context-extractor";
 
 // Environment variables
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
@@ -310,9 +311,13 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
     } catch (error) {
       if (error instanceof RateLimitError) {
         consecutiveRateLimits++;
-        console.error(`  ✗ Rate limited for ${article.title.slice(0, 30)}...`);
+        logWarn(`Rate limited for ${article.title.slice(0, 30)}`, { source: "summarize" });
       } else {
-        console.error(`  ✗ Failed for ${article.url}:`, error);
+        const errMsg = error instanceof Error ? error.message : String(error);
+        logError(`Failed to summarize ${article.url}: ${errMsg}`, {
+          source: "summarize",
+          stack: error instanceof Error ? error.stack : undefined,
+        });
       }
     }
   }
@@ -333,7 +338,8 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
     await persistSearchIndex();
     console.log("  Search index saved to Turso for Workers");
   } catch (error) {
-    console.warn("  Failed to persist search index:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    logWarn(`Failed to persist search index: ${errMsg}`, { source: "search-index" });
   }
 
   // Create embeds

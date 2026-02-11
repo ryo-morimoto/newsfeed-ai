@@ -14,6 +14,7 @@ import { sendEmbedsViaBot } from "./discord/discord-embed";
 import { runFeedbackAgent, type FeedbackResult } from "./agent-feedback";
 import { watchTask, checkPendingTasks, cleanup, type TaskCompletionInfo } from "./task-monitor";
 import { generateMissingSummaries } from "./summarize/generate-missing-summaries";
+import { logError } from "./context-extractor";
 
 const client = new Client({
   intents: [
@@ -92,7 +93,11 @@ async function runScheduledNewsfeed() {
       console.log(`✅ Posted ${result.articles.length} articles to Discord`);
     }
   } catch (error) {
-    console.error("Scheduled newsfeed failed:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    logError(`Scheduled newsfeed failed: ${errMsg}`, {
+      source: "bot",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
   }
 }
 
@@ -124,7 +129,11 @@ async function checkAndNotifyTasks() {
     const completedTasks = await checkPendingTasks();
     await Promise.all(completedTasks.map(sendTaskNotification));
   } catch (error) {
-    console.error("[task-monitor] Error checking tasks:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    logError(`Error checking tasks: ${errMsg}`, {
+      source: "task-monitor",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
   }
 }
 
