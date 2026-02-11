@@ -9,13 +9,15 @@ import "../adapters/db-adapter";
 import * as db from "@newsfeed-ai/core/db";
 
 // Re-export types
-export type { Article } from "@newsfeed-ai/core/db";
+export type { Article, ArticleFilters } from "@newsfeed-ai/core/db";
 
 // Re-export operations
 export {
   getArticlesWithDetailedSummary,
   getArticleByUrl,
   getAllArticlesForIndexing as getAllArticles,
+  getDistinctSources,
+  getDistinctCategories,
 } from "@newsfeed-ai/core/db";
 
 // Initialize on first use with promise-based guard to prevent race conditions

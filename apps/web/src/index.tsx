@@ -2,7 +2,13 @@ import { Hono } from "hono";
 import { IndexPage } from "./pages/index";
 import { ArticlePage, NotFoundPage } from "./pages/article";
 import { SearchPage } from "./pages/search";
-import { ensureInitialized, getArticlesWithDetailedSummary, getArticleByUrl } from "./lib/db";
+import {
+  ensureInitialized,
+  getArticlesWithDetailedSummary,
+  getArticleByUrl,
+  getDistinctSources,
+  getDistinctCategories,
+} from "./lib/db";
 import { searchArticles } from "./lib/search";
 
 type Bindings = {
@@ -20,8 +26,24 @@ app.use("*", async (c, next) => {
 
 // Home page
 app.get("/", async (c) => {
-  const articles = await getArticlesWithDetailedSummary();
-  return c.html(<IndexPage articles={articles} />);
+  const source = c.req.query("source") || undefined;
+  const category = c.req.query("category") || undefined;
+
+  const [articles, sources, categories] = await Promise.all([
+    getArticlesWithDetailedSummary(50, { source, category }),
+    getDistinctSources(),
+    getDistinctCategories(),
+  ]);
+
+  return c.html(
+    <IndexPage
+      articles={articles}
+      sources={sources}
+      categories={categories}
+      currentSource={source}
+      currentCategory={category}
+    />
+  );
 });
 
 // Article detail page
