@@ -120,7 +120,7 @@ export async function createCategoryEmbeds(articles: NotifyArticle[]): Promise<D
       const detailUrl = getArticleDetailUrl(item.url);
       const summaryPart = detailUrl ? ` • [詳細](${detailUrl})` : "";
       description += `**[${displayText}](${item.url})**\n`;
-      description += `└ \`${item.source}\`${datePart}${summaryPart}\n\n`;
+      description += `└ \`${item.source}\`${summaryPart}${datePart}\n\n`;
     }
 
     embeds.push({
