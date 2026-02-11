@@ -53,6 +53,108 @@ sources:
     category: tech-jp
     enabled: true
 
+  # === 日本語 AI/LLM/エージェント系ソース ===
+
+  # --- AI スタートアップ 技術ブログ ---
+  - name: Generative Agents Tech Blog
+    type: rss
+    url: https://blog.generative-agents.co.jp/feed
+    category: tech-jp
+    enabled: true
+    # Claude Agent SDK, Mastra, コーディングエージェント等の実践知見
+
+  - name: Algomatic Tech Blog
+    type: rss
+    url: https://tech.algomatic.jp/feed
+    category: tech-jp
+    enabled: true
+    # LangGraph, AIエージェント実装, WEBエージェント
+
+  - name: LayerX Tech Blog
+    type: rss
+    url: https://tech.layerx.co.jp/feed
+    category: tech-jp
+    enabled: true
+    # Ai Workforce, LLMプロダクト開発
+
+  - name: ABEJA Tech Blog
+    type: rss
+    url: https://tech-blog.abeja.asia/feed
+    category: tech-jp
+    enabled: true
+    # LLM, Deep Research, AIエージェント研究
+
+  - name: PFN Tech Blog
+    type: rss
+    url: https://tech.preferred.jp/ja/feed/
+    category: tech-jp
+    enabled: true
+    # PLaMo LLM, AI Agent自動設計(ADAS)
+
+  - name: DeNA Engineering
+    type: rss
+    url: https://engineering.dena.com/blog/index.xml
+    category: tech-jp
+    enabled: true
+    # LLMOps, AIエージェント活用, Claude Code
+
+  # --- Zenn トピック別 ---
+  - name: Zenn LLM
+    type: rss
+    url: https://zenn.dev/topics/llm/feed
+    category: tech-jp
+    enabled: true
+
+  - name: Zenn AI Agent
+    type: rss
+    url: https://zenn.dev/topics/aiagent/feed
+    category: tech-jp
+    enabled: true
+
+  - name: Zenn LangChain
+    type: rss
+    url: https://zenn.dev/topics/langchain/feed
+    category: tech-jp
+    enabled: true
+
+  - name: Zenn Claude Code
+    type: rss
+    url: https://zenn.dev/topics/claudecode/feed
+    category: tech-jp
+    enabled: true
+
+  # --- Qiita タグ別 ---
+  - name: Qiita LLM
+    type: rss
+    url: https://qiita.com/tags/LLM/feed
+    category: tech-jp
+    enabled: true
+
+  - name: Qiita AI Agent
+    type: rss
+    url: https://qiita.com/tags/ai-agent/feed
+    category: tech-jp
+    enabled: true
+
+  - name: Qiita LangChain
+    type: rss
+    url: https://qiita.com/tags/langchain/feed
+    category: tech-jp
+    enabled: true
+
+  - name: Qiita Claude Code
+    type: rss
+    url: https://qiita.com/tags/claudecode/feed
+    category: tech-jp
+    enabled: true
+
+  # --- note.com ハッシュタグ ---
+  - name: note LLM
+    type: rss
+    url: https://note.com/hashtag/LLM/rss
+    category: tech-jp
+    enabled: true
+
   # GitHub Trending
   - name: GitHub Trending
     type: github-trending
