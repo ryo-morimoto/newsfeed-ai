@@ -149,20 +149,18 @@ export async function generateDetailedSummary(
   const content = await fetchArticleContent(article.url);
 
   if (!content || content.length < 100) {
-    // コンテンツが取得できない場合は基本情報のみ返す
-    return {
-      title: article.title,
-      url: article.url,
-      source: article.source,
-      category: article.category,
-      shortSummary: article.summary || article.title,
-      detailedSummary: "コンテンツを取得できませんでした。元の記事をご確認ください。",
-      keyPoints: [],
-      fetchedAt: new Date(),
-    };
+    // コンテンツが取得できない場合は空を返して後で再試行
+    console.warn(
+      `[detailed-summary] Content too short (${content?.length || 0} chars), will retry later: ${article.url}`
+    );
+    return createFallbackResult(article, content || "");
   }
 
-  const prompt = `あなたは技術記事・論文の要旨作成の専門家です。以下の記事の内容を分析し、詳細な要旨を作成してください。
+  const systemPrompt = `あなたは日本語で技術記事を要約する専門家です。
+すべての出力は必ず日本語で行ってください。英語での出力は絶対に禁止です。
+技術用語（API、LLM、GPUなど）はそのまま使用できますが、説明文は必ず日本語です。`;
+
+  const userPrompt = `以下の記事の詳細な要旨を日本語で作成してください。
 
 ## 記事情報
 タイトル: ${article.title}
@@ -172,18 +170,19 @@ export async function generateDetailedSummary(
 ## 記事本文
 ${content.slice(0, 12000)}
 
-## 出力形式（JSON）
+## 出力形式（必ずこのJSON形式で日本語出力）
 {
-  "detailedSummary": "詳細な要旨（5-10文、300-500文字程度）。記事の主要な内容、提案手法、結果、意義を含める。技術的な詳細も適度に含める。",
-  "keyPoints": ["重要ポイント1（50文字以内）", "重要ポイント2", ...（3-5個）],
-  "targetAudience": "この記事が役立つ対象読者（例：機械学習エンジニア、フロントエンド開発者など）"
+  "detailedSummary": "詳細な要旨を日本語で5-10文、300-500文字程度で記述。記事の主要な内容、提案手法、結果、意義を含める。",
+  "keyPoints": ["重要ポイント1を日本語で（50文字以内）", "重要ポイント2を日本語で", "重要ポイント3を日本語で"],
+  "targetAudience": "対象読者を日本語で記述（例：機械学習エンジニア、フロントエンド開発者）"
 }
 
-## 注意事項
-- 日本語で出力してください
-- 具体的な数値や手法名があれば含めてください
-- 「詳細は記事参照」のような曖昧な表現は避けてください
-- JSONのみを出力してください`;
+## 重要な注意事項
+- 【必須】すべての値を日本語で出力すること。英語での出力は不可。
+- 技術用語はそのまま使用可能（例：LLM、API、GPU）
+- 具体的な数値や手法名があれば含める
+- 「詳細は記事参照」のような曖昧な表現は避ける
+- JSONのみを出力`;
 
   try {
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -196,7 +195,10 @@ ${content.slice(0, 12000)}
         model: "llama-3.3-70b-versatile",
         max_tokens: 2048,
         temperature: 0.3,
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
       }),
     });
 
@@ -224,13 +226,23 @@ ${content.slice(0, 12000)}
         targetAudience?: string;
       };
 
+      const summary = parsed.detailedSummary || "";
+
+      // Validate that the summary is in Japanese
+      if (!containsJapanese(summary)) {
+        console.warn(
+          `[detailed-summary] Generated summary is not in Japanese, returning empty for retry: ${article.url}`
+        );
+        return createFallbackResult(article, content);
+      }
+
       return {
         title: article.title,
         url: article.url,
         source: article.source,
         category: article.category,
         shortSummary: article.summary || article.title,
-        detailedSummary: parsed.detailedSummary || "要旨を生成できませんでした。",
+        detailedSummary: summary,
         keyPoints: parsed.keyPoints || [],
         targetAudience: parsed.targetAudience,
         fetchedAt: new Date(),
@@ -243,6 +255,18 @@ ${content.slice(0, 12000)}
   return createFallbackResult(article, content);
 }
 
+/**
+ * Check if text contains substantial Japanese characters
+ * Returns true if at least 10% of the text is Japanese
+ */
+function containsJapanese(text: string): boolean {
+  const japaneseRegex = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g;
+  const matches = text.match(japaneseRegex);
+  if (!matches) return false;
+  // At least 10% should be Japanese characters for a meaningful Japanese summary
+  return matches.length >= text.length * 0.1;
+}
+
 function createFallbackResult(
   article: {
     title: string;
@@ -251,18 +275,17 @@ function createFallbackResult(
     category: string;
     summary?: string;
   },
-  content: string
+  _content: string
 ): DetailedSummaryResult {
-  // コンテンツの最初の500文字を要旨として使用
-  const fallbackSummary = content.slice(0, 500) + (content.length > 500 ? "..." : "");
-
+  // Return empty summary to allow retry later by background job
+  // Don't use English content fallback as it won't be useful for Japanese users
   return {
     title: article.title,
     url: article.url,
     source: article.source,
     category: article.category,
     shortSummary: article.summary || article.title,
-    detailedSummary: fallbackSummary || "要旨を生成できませんでした。",
+    detailedSummary: "", // Empty to trigger retry later
     keyPoints: [],
     fetchedAt: new Date(),
   };
