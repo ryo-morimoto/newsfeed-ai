@@ -81,15 +81,20 @@ export async function generateMissingSummaries(): Promise<GenerationResult> {
         }
       );
 
-      await updateArticleDetailedSummary(
-        article.url,
-        detailed.detailedSummary,
-        detailed.keyPoints,
-        detailed.targetAudience
-      );
-
-      console.log(`[generate-missing-summaries] ✓ ${article.title.slice(0, 50)}...`);
-      result.success++;
+      // Only save if we got a valid Japanese summary
+      if (detailed.detailedSummary) {
+        await updateArticleDetailedSummary(
+          article.url,
+          detailed.detailedSummary,
+          detailed.keyPoints,
+          detailed.targetAudience
+        );
+        console.log(`[generate-missing-summaries] ✓ ${article.title.slice(0, 50)}...`);
+        result.success++;
+      } else {
+        console.log(`[generate-missing-summaries] ⚠️ Empty summary (will retry): ${article.title.slice(0, 50)}...`);
+        result.failed++;
+      }
       consecutiveRateLimits = 0;
 
       // 成功時も少し待機してレートリミットを避ける

@@ -294,14 +294,18 @@ export async function runNewsfeed(): Promise<NewsfeedResult | null> {
           },
         }
       );
-      // Store in DB
-      await updateArticleDetailedSummary(
-        article.url,
-        detailed.detailedSummary,
-        detailed.keyPoints,
-        detailed.targetAudience
-      );
-      console.log(`  ✓ ${article.title.slice(0, 40)}...`);
+      // Store in DB only if we got a valid Japanese summary
+      if (detailed.detailedSummary) {
+        await updateArticleDetailedSummary(
+          article.url,
+          detailed.detailedSummary,
+          detailed.keyPoints,
+          detailed.targetAudience
+        );
+        console.log(`  ✓ ${article.title.slice(0, 40)}...`);
+      } else {
+        console.log(`  ⚠️ Empty summary, will retry later: ${article.title.slice(0, 40)}...`);
+      }
       consecutiveRateLimits = 0; // Reset on success
     } catch (error) {
       if (error instanceof RateLimitError) {
