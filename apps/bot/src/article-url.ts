@@ -12,5 +12,5 @@ const BASE_URL = process.env.ARTICLE_SERVER_URL || "";
 export function getArticleDetailUrl(articleUrl: string): string {
   if (!BASE_URL) return "";
   const encoded = encodeURIComponent(articleUrl);
-  return `${BASE_URL}/article?url=${encoded}`;
+  return `${BASE_URL}/article/${encoded}`;
 }
