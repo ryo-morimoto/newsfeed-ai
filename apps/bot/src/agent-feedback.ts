@@ -1,4 +1,5 @@
 import { query, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import { getFormattedFeedbackContext } from "./context-extractor";
 
 export interface FeedbackResult {
   success: boolean;
@@ -7,6 +8,17 @@ export interface FeedbackResult {
   prUrl?: string;
   error?: string;
   logs: string[];
+}
+
+export interface FeedbackOptions {
+  /** Include auto-extracted context (recent feeds, errors) */
+  includeContext?: boolean;
+  /** Hours of feed history to include (default: 24) */
+  feedHours?: number;
+  /** Maximum number of feeds to include (default: 10) */
+  feedLimit?: number;
+  /** Minutes of error logs to include (default: 60) */
+  errorMinutes?: number;
 }
 
 const VK_PORT_FILE = "/tmp/vibe-kanban/vibe-kanban.port";
@@ -51,9 +63,11 @@ async function getVibeKanbanMcpConfig() {
 export async function runFeedbackAgent(
   feedback: string,
   requestedBy: string,
-  projectId?: string
+  projectId?: string,
+  options?: FeedbackOptions
 ): Promise<FeedbackResult> {
   const logs: string[] = [];
+  const includeContext = options?.includeContext ?? true;
 
   const log = (msg: string) => {
     console.log(`[agent] ${msg}`);
@@ -62,6 +76,27 @@ export async function runFeedbackAgent(
 
   log(`Starting feedback agent for: "${feedback}"`);
   log(`Requested by: ${requestedBy}`);
+
+  // Extract context if enabled
+  let contextSection = "";
+  if (includeContext) {
+    try {
+      log("Extracting context...");
+      contextSection = await getFormattedFeedbackContext({
+        feedHours: options?.feedHours ?? 24,
+        feedLimit: options?.feedLimit ?? 10,
+        errorMinutes: options?.errorMinutes ?? 60,
+      });
+      log(`Context extracted (${contextSection.length} chars)`);
+    } catch (error) {
+      log(`Failed to extract context: ${error}`);
+    }
+  }
+
+  // Build context section for the description
+  const contextForDescription = contextSection
+    ? `\n\n---\n\n# Auto-extracted Context\n\n${contextSection}`
+    : "";
 
   // Prompt for the agent to use vibe-kanban MCP tools
   const prompt = `
@@ -76,7 +111,7 @@ ${feedback}
 3. Call create_task with:
    - project_id: the newsfeed-ai project ID
    - title: A concise title for this task
-   - description: "${feedback}\\n\\nRequested by: ${requestedBy}"
+   - description: "${feedback}\\n\\nRequested by: ${requestedBy}${contextForDescription.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"
 4. Call start_workspace_session with:
    - task_id: the created task ID
    - executor: "CLAUDE_CODE"
