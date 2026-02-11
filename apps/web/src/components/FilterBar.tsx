@@ -1,8 +1,18 @@
+import { getCategoryColor } from "../lib/category";
+
 interface FilterBarProps {
   sources: string[];
   categories: string[];
   currentSource?: string;
   currentCategory?: string;
+}
+
+function buildFilterUrl(source?: string, category?: string): string {
+  const params = new URLSearchParams();
+  if (source) params.set("source", source);
+  if (category) params.set("category", category);
+  const query = params.toString();
+  return query ? `/?${query}` : "/";
 }
 
 export const FilterBar = ({
@@ -11,53 +21,99 @@ export const FilterBar = ({
   currentSource,
   currentCategory,
 }: FilterBarProps) => {
+  const hasFilters = currentSource || currentCategory;
+
   return (
-    <div class="flex flex-wrap gap-4 mb-6 p-4 bg-bg-card rounded-lg border border-border">
-      <div class="flex items-center gap-2">
-        <label class="text-sm font-medium text-text-secondary" for="source-filter">
-          ソース:
-        </label>
-        <select
-          id="source-filter"
-          name="source"
-          class="px-3 py-1.5 rounded-md bg-bg-primary border border-border text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-          onchange="this.form.submit()"
-        >
-          <option value="">すべて</option>
-          {sources.map((source) => (
-            <option key={source} value={source} selected={source === currentSource}>
-              {source}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <label class="text-sm font-medium text-text-secondary" for="category-filter">
-          カテゴリ:
-        </label>
-        <select
-          id="category-filter"
-          name="category"
-          class="px-3 py-1.5 rounded-md bg-bg-primary border border-border text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-          onchange="this.form.submit()"
-        >
-          <option value="">すべて</option>
-          {categories.map((category) => (
-            <option key={category} value={category} selected={category === currentCategory}>
-              {category}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {(currentSource || currentCategory) && (
+    <div class="mb-8 space-y-4">
+      {/* Source filter */}
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-medium text-text-muted uppercase tracking-wider mr-1">
+          Source
+        </span>
         <a
-          href="/"
-          class="px-3 py-1.5 rounded-md bg-bg-primary border border-border text-text-secondary text-sm hover:text-accent hover:border-accent transition-colors"
+          href={buildFilterUrl(undefined, currentCategory)}
+          class={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+            !currentSource
+              ? "bg-accent text-white shadow-sm"
+              : "bg-bg-secondary text-text-secondary hover:bg-bg-card hover:text-text-primary"
+          }`}
         >
-          フィルターをクリア
+          All
         </a>
+        {sources.map((source) => (
+          <a
+            key={source}
+            href={buildFilterUrl(source, currentCategory)}
+            class={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+              source === currentSource
+                ? "bg-accent text-white shadow-sm"
+                : "bg-bg-secondary text-text-secondary hover:bg-bg-card hover:text-text-primary hover:shadow-sm"
+            }`}
+          >
+            {source}
+          </a>
+        ))}
+      </div>
+
+      {/* Category filter */}
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-medium text-text-muted uppercase tracking-wider mr-1">
+          Category
+        </span>
+        <a
+          href={buildFilterUrl(currentSource, undefined)}
+          class={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+            !currentCategory
+              ? "bg-accent text-white shadow-sm"
+              : "bg-bg-secondary text-text-secondary hover:bg-bg-card hover:text-text-primary"
+          }`}
+        >
+          All
+        </a>
+        {categories.map((category) => {
+          const color = getCategoryColor(category);
+          const isActive = category === currentCategory;
+          return (
+            <a
+              key={category}
+              href={buildFilterUrl(currentSource, category)}
+              class={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                isActive ? "shadow-sm" : "opacity-70 hover:opacity-100 hover:shadow-sm"
+              }`}
+              style={{
+                backgroundColor: color.bg,
+                color: color.text,
+              }}
+            >
+              {category}
+            </a>
+          );
+        })}
+      </div>
+
+      {/* Clear filter - shown inline when filters active */}
+      {hasFilters && (
+        <div class="pt-2">
+          <a
+            href="/"
+            class="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-accent transition-colors"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+            フィルターをクリア
+          </a>
+        </div>
       )}
     </div>
   );

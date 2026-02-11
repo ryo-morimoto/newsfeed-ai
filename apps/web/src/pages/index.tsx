@@ -26,18 +26,15 @@ export const IndexPage = ({
           <h1 class="text-3xl md:text-4xl font-bold text-text-primary mb-2">記事一覧</h1>
           <p class="text-text-secondary">
             詳細要旨が生成された記事 ({articles.length}件)
-            {hasFilters && " - フィルター適用中"}
           </p>
         </header>
 
-        <form method="get" action="/">
-          <FilterBar
-            sources={sources}
-            categories={categories}
-            currentSource={currentSource}
-            currentCategory={currentCategory}
-          />
-        </form>
+        <FilterBar
+          sources={sources}
+          categories={categories}
+          currentSource={currentSource}
+          currentCategory={currentCategory}
+        />
 
         {articles.length === 0 ? (
           <div class="text-center py-16 text-text-muted">
