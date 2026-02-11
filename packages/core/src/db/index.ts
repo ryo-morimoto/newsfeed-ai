@@ -22,4 +22,7 @@ export {
   markTaskNotified,
   getTaskNotification,
   cleanupOldTaskNotifications,
+  getDistinctSources,
+  getDistinctCategories,
 } from "./operations";
+export type { ArticleFilters } from "./operations";

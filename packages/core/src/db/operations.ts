@@ -72,18 +72,60 @@ export async function getRecentArticles(hours: number = 24): Promise<Article[]> 
   return (result.rows as unknown as ArticleRow[]).map(rowToArticle);
 }
 
-export async function getArticlesWithDetailedSummary(limit: number = 50): Promise<Article[]> {
+export interface ArticleFilters {
+  source?: string;
+  category?: string;
+}
+
+export async function getArticlesWithDetailedSummary(
+  limit: number = 50,
+  filters?: ArticleFilters
+): Promise<Article[]> {
   const db = await getDb();
+  const conditions = ["detailed_summary IS NOT NULL"];
+  const args: (string | number)[] = [];
+
+  if (filters?.source) {
+    conditions.push("source = ?");
+    args.push(filters.source);
+  }
+  if (filters?.category) {
+    conditions.push("category = ?");
+    args.push(filters.category);
+  }
+
+  args.push(limit);
+
   const result = await db.execute({
     sql: `
       SELECT * FROM articles
-      WHERE detailed_summary IS NOT NULL
+      WHERE ${conditions.join(" AND ")}
       ORDER BY created_at DESC
       LIMIT ?
     `,
-    args: [limit],
+    args,
   });
   return (result.rows as unknown as ArticleRow[]).map(rowToArticle);
+}
+
+export async function getDistinctSources(): Promise<string[]> {
+  const db = await getDb();
+  const result = await db.execute(`
+    SELECT DISTINCT source FROM articles
+    WHERE detailed_summary IS NOT NULL
+    ORDER BY source
+  `);
+  return result.rows.map((row: unknown) => (row as { source: string }).source);
+}
+
+export async function getDistinctCategories(): Promise<string[]> {
+  const db = await getDb();
+  const result = await db.execute(`
+    SELECT DISTINCT category FROM articles
+    WHERE detailed_summary IS NOT NULL
+    ORDER BY category
+  `);
+  return result.rows.map((row: unknown) => (row as { category: string }).category);
 }
 
 export async function getArticleByUrl(url: string): Promise<Article | null> {
