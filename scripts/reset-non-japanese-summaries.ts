@@ -7,6 +7,8 @@
  * Usage: bun scripts/reset-non-japanese-summaries.ts [--dry-run]
  */
 
+// Load DB adapter to set up client factory
+import "../apps/bot/src/adapters/db-adapter";
 import { ensureDb, getDb } from "../packages/core/src/db";
 
 interface ArticleWithSummary {
